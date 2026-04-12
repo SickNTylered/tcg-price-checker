@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>One Piece Price Check Control</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #0f0f19; color: #fff; padding: 30px; text-align: center; }
+    .container { max-width: 620px; margin: 0 auto; }
+    h2 { color: #00ff9d; }
+    input, button { padding: 14px; font-size: 18px; margin: 10px; border-radius: 8px; }
+    input { width: 520px; background: #1f1f2e; color: #fff; border: 2px solid #00ff9d; }
+    button { background: #00ff9d; color: #000; border: none; font-weight: bold; cursor: pointer; }
+    #status { margin-top: 20px; font-size: 16px; min-height: 30px; }
+    .api-section { background: #1a1a2e; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>One Piece Price Check Control</h2>
+    
+    <div class="api-section">
+      <p><strong>JustTCG API Key</strong> (saved automatically)</p>
+      <input type="password" id="apiKey" placeholder="Paste your JustTCG API key here">
+      <button onclick="saveApiKey()">Save API Key</button>
+      <div id="apiStatus" style="font-size:14px; margin-top:8px;"></div>
+    </div>
+
+    <p>Paste chat command → press button or Enter</p>
+    <input type="text" id="command" placeholder=":pc OP05-123 AA" autofocus>
+    <br>
+    <button onclick="processCommand()">🔥 FETCH & REVEAL ON STREAM</button>
+
+    <div id="status"></div>
+  </div>
+
+  <script>
+    const GAME_SLUG = "one-piece-card-game";
+    let API_KEY = localStorage.getItem("justtcg_api_key") || "";
+    const channel = new BroadcastChannel('card_reveal_channel');
+
+    if (API_KEY) {
+      document.getElementById("apiKey").value = API_KEY;
+      document.getElementById("apiStatus").innerHTML = "✅ API key loaded";
+    }
+
+    function saveApiKey() {
+      API_KEY = document.getElementById("apiKey").value.trim();
+      if (API_KEY) {
+        localStorage.setItem("justtcg_api_key", API_KEY);
+        document.getElementById("apiStatus").innerHTML = "✅ Saved!";
+      } else {
+        document.getElementById("apiStatus").innerHTML = "❌ Enter a valid key";
+      }
+    }
+
+    async function processCommand() {
+      const cmd = document.getElementById("command").value.trim();
+      if (!cmd.toLowerCase().startsWith(":pc")) {
+        document.getElementById("status").innerHTML = "❌ Must start with :pc";
+        return;
+      }
+      if (!API_KEY) {
+        document.getElementById("status").innerHTML = "❌ Save your JustTCG API key first";
+        return;
+      }
+
+      document.getElementById("status").innerHTML = "Fetching from JustTCG...";
+
+      // Parse command
+      const parts = cmd.toLowerCase().replace(":pc", "").trim().split(/\s+/);
+      let cardNum = null;
+      for (let p of parts) {
+        if (/^[a-z0-9]+-\d+$/.test(p)) cardNum = p.toUpperCase();
+      }
+      if (!cardNum) {
+        document.getElementById("status").innerHTML = "❌ No card number (e.g. OP05-123)";
+        return;
+      }
+
+      try {
+        const res = await fetch(`https://api.justtcg.com/v1/cards?game=${GAME_SLUG}&q=${cardNum}`, {
+          headers: { "X-API-Key": API_KEY }
+        });
+
+        if (!res.ok) throw new Error("API error");
+        const json = await res.json();
+        const card = json.data?.[0];
+        if (!card) throw new Error("Card not found");
+
+        const variants = card.variants || [];
+        let selected = variants.find(v => v.condition?.toLowerCase().includes("near mint")) || variants[0] || {};
+
+        // Detect Leader / Don for back face
+        const nameLower = (card.name || "").toLowerCase();
+        let cardTypeKey = "default";
+        if ((card.rarity || "").toUpperCase() === "L" || nameLower.includes("leader") || (card.type || "").toLowerCase().includes("leader")) {
+          cardTypeKey = "leader";
+        } else if (nameLower.includes("don") || nameLower.includes("dawn") || (card.type || "").toLowerCase().includes("don")) {
+          cardTypeKey = "don";
+        }
+
+        const dataToSend = {
+          name: card.name || "Unknown Card",
+          number: card.number || cardNum,
+          printing: selected.printing || "Regular",
+          engPrice: selected.price || "N/A",
+          jpPrice: "N/A",
+          lang: (selected.language || "EN").toUpperCase().includes("JP") ? "JP" : "ENG",
+          image: card.image || card.images?.[0] || "https://via.placeholder.com/245x340/1a1a2e/ffd700?text=No+Image",
+          cardTypeKey: cardTypeKey
+        };
+
+        // Send to display.html via BroadcastChannel
+        channel.postMessage({ type: 'reveal', data: dataToSend });
+
+        document.getElementById("status").innerHTML = `✅ Revealed: ${dataToSend.name} (${dataToSend.number})`;
+        document.getElementById("command").value = "";
+
+      } catch (err) {
+        document.getElementById("status").innerHTML = `❌ ${err.message}`;
+      }
+    }
+
+    document.getElementById("command").addEventListener("keypress", e => {
+      if (e.key === "Enter") processCommand();
+    });
+  </script>
+</body>
+</html>

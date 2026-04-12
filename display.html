@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>One Piece Price Reveal</title>
+  <style>
+    body { 
+      margin:0; 
+      background: rgba(0,0,0,0); 
+      font-family: Arial, sans-serif; 
+      overflow: hidden; 
+      perspective: 1400px; 
+    }
+    #scene {
+      position: absolute; 
+      left: 80px; 
+      bottom: 100px; 
+      width: 720px;
+    }
+    .card {
+      width: 100%; 
+      height: 420px;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 1.5s cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+    .card.show-front { transform: rotateY(180deg); }
+    .face {
+      position: absolute; 
+      width: 100%; 
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 18px; 
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+      background-size: cover;
+      background-position: center;
+    }
+    .back { background: linear-gradient(135deg, #1a1a2e, #16213e); }
+    .back.leader { background: linear-gradient(135deg, #8b0000, #4b0000); } /* red for leaders */
+    .back.don    { background: linear-gradient(135deg, #ffd700, #b8860b); } /* gold for Don */
+
+    .front {
+      background: #111;
+      transform: rotateY(180deg);
+      display: flex; 
+      align-items: center; 
+      gap: 25px; 
+      padding: 25px;
+    }
+    .front img {
+      width: 240px; 
+      border-radius: 12px; 
+      border: 4px solid #ffd700;
+      box-shadow: 0 0 30px #ffd700;
+    }
+    .info { color: white; flex: 1; }
+    .name { font-size: 26px; font-weight: bold; margin: 0 0 8px 0; }
+    .details { font-size: 18px; opacity: 0.9; }
+    .price { font-size: 32px; font-weight: bold; color: #00ff9d; }
+
+    .shine, .sparkles { 
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; 
+    }
+    .shine { 
+      background: linear-gradient(120deg, transparent, rgba(255,255,255,0.8), transparent); 
+      background-size: 200% 100%; 
+      animation: shineAnim 1.6s ease-in-out;
+    }
+    @keyframes shineAnim { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .sparkles { 
+      background: radial-gradient(circle, rgba(255,215,0,0.9) 20%, transparent 70%); 
+      animation: sparklePop 2s ease-out forwards;
+    }
+    @keyframes sparklePop { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
+  </style>
+</head>
+<body>
+  <div id="scene">
+    <div id="card" class="card">
+      <div id="backFace" class="face back"></div>
+      
+      <div class="face front">
+        <img id="cardImage" src="https://picsum.photos/id/237/240/340" alt="Card">
+        <div class="info">
+          <div class="name" id="name">Card Name</div>
+          <div class="details" id="details">Printing • LANG</div>
+          <div class="price" id="price">ENG: $XX • JP: $XX</div>
+        </div>
+        <div class="shine"></div>
+        <div class="sparkles"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const card = document.getElementById('card');
+    const backFace = document.getElementById('backFace');
+
+    const channel = new BroadcastChannel('card_reveal_channel');
+
+    function showCardReveal(data = {}) {
+      console.log("🎴 Reveal triggered:", data);
+
+      // Set back face based on card type
+      const back = document.getElementById('backFace');
+      back.className = `face back ${data.cardTypeKey || 'default'}`;
+
+      // Set front
+      document.getElementById('cardImage').src = data.image || "https://picsum.photos/id/237/240/340";
+      document.getElementById('name').textContent = `${data.name || "Unknown"} (${data.number || "OPXX-XXX"})`;
+      document.getElementById('details').textContent = `${data.printing || "Regular"} • ${data.lang || "ENG"}`;
+      document.getElementById('price').textContent = `ENG: $${data.engPrice || "N/A"} • JP: $${data.jpPrice || "N/A"}`;
+
+      // Trigger flip + effects
+      card.classList.remove('show-front');
+      setTimeout(() => {
+        card.classList.add('show-front');
+      }, 150);
+    }
+
+    // Listen for messages from control panel
+    channel.onmessage = (event) => {
+      if (event.data.type === 'reveal') {
+        showCardReveal(event.data.data);
+      }
+    };
+
+    // For manual testing in browser console
+    window.showCardReveal = showCardReveal;
+    console.log("✅ Display ready. Open control.html in another tab and use :pc commands.");
+  </script>
+</body>
+</html>

@@ -76,7 +76,7 @@
       <div id="backFace" class="face back"></div>
       
       <div class="face front">
-        <img id="cardImage" src="https://placehold.co/240x340/png?text=Loading+Card..." alt="Card">
+        <img id="cardImage" src="https://placehold.co/240x340/png?text=Waiting+for+card..." alt="Card">
         <div class="info">
           <div class="name" id="name">Card Name</div>
           <div class="details" id="details">Printing • LANG</div>
@@ -96,34 +96,44 @@
     function showCardReveal(data = {}) {
       console.log("🎴 Reveal triggered:", data);
 
+      // Set back face
       backFace.className = `face back ${data.cardTypeKey || 'default'}`;
 
+      // Set image with fallback
       let imageUrl = data.image || "https://placehold.co/240x340/png?text=No+Image";
+
       imgElement.onerror = () => {
+        console.warn("Card image failed to load → using fallback");
         imgElement.src = "https://placehold.co/240x340/png?text=No+Image";
       };
+
       imgElement.src = imageUrl;
 
+      // Set text
       document.getElementById('name').textContent = `${data.name || "Unknown"} (${data.number || "OPXX-XXX"})`;
       document.getElementById('details').textContent = `${data.printing || "Regular"} • ${data.lang || "ENG"}`;
       document.getElementById('price').textContent = `ENG: $${data.engPrice || "N/A"} • JP: $${data.jpPrice || "N/A"}`;
 
+      // Reliable flip
       card.classList.remove('show-front');
+      void card.offsetWidth;   // Force reflow for smoother animation
       setTimeout(() => {
         card.classList.add('show-front');
-      }, 100);
+      }, 50);
     }
 
+    // Listen for control panel
     channel.onmessage = (event) => {
       if (event.data && event.data.type === 'reveal') {
         showCardReveal(event.data.data);
       }
     };
 
+    // For manual testing
     window.showCardReveal = showCardReveal;
 
-    console.log("✅ Safe flip version loaded.");
-    console.log("Test manually: showCardReveal({name: 'Luffy', number: 'OP05-001'});");
+    console.log("✅ Display ready. Test manually:");
+    console.log("showCardReveal({ name: 'Monkey D. Luffy', number: 'OP05-001', image: 'https://placehold.co/240x340/png?text=Luffy' });");
   </script>
 </body>
 </html>

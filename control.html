@@ -26,7 +26,7 @@
     </div>
 
     <p>Paste chat command → press button or Enter</p>
-    <input type="text" id="command" placeholder=":pc OP05-123 AA" autofocus>
+    <input type="text" id="command" placeholder=":pc OP05-001" autofocus>
     <br>
     <button onclick="processCommand()">🔥 FETCH & REVEAL ON STREAM</button>
 
@@ -73,7 +73,7 @@
         if (/^[a-z0-9]+-\d+$/.test(p)) cardNum = p.toUpperCase();
       }
       if (!cardNum) {
-        document.getElementById("status").innerHTML = "❌ No card number (e.g. OP05-123)";
+        document.getElementById("status").innerHTML = "❌ No card number (e.g. OP05-001)";
         return;
       }
 
@@ -90,7 +90,7 @@
         const variants = card.variants || [];
         let selected = variants.find(v => v.condition?.toLowerCase().includes("near mint")) || variants[0] || {};
 
-        // Detect Leader / Don for back face
+        // Detect card type for back face
         const nameLower = (card.name || "").toLowerCase();
         let cardTypeKey = "default";
         if ((card.rarity || "").toUpperCase() === "L" || nameLower.includes("leader") || (card.type || "").toLowerCase().includes("leader")) {
@@ -99,13 +99,14 @@
           cardTypeKey = "don";
         }
 
-                // Try multiple possible image fields from JustTCG response
-        let cardImage = card.image || 
-                        (card.images && card.images[0]) || 
-                        (card.images && card.images.front) || 
-                        null;
+        // Improved image extraction
+        let cardImage = null;
+        if (card.image) cardImage = card.image;
+        else if (card.images && Array.isArray(card.images)) cardImage = card.images[0];
+        else if (card.images && card.images.front) cardImage = card.images.front;
 
-        console.log("Raw card image from API:", cardImage);   // Check this in control console
+        console.log("🔍 Raw card data from API:", card);
+        console.log("🔍 Extracted image URL:", cardImage);
 
         const dataToSend = {
           name: card.name || "Unknown Card",
@@ -114,13 +115,13 @@
           engPrice: selected.price || "N/A",
           jpPrice: "N/A",
           lang: (selected.language || "EN").toUpperCase().includes("JP") ? "JP" : "ENG",
-          image: cardImage || "https://picsum.photos/id/237/240/340",
+          image: cardImage || "https://placehold.co/240x340/png?text=No+Image",
           cardTypeKey: cardTypeKey
         };
 
-        console.log("Final data being sent to display:", dataToSend);
+        console.log("📤 Sending to display:", dataToSend);
 
-        // Send to display.html via BroadcastChannel
+        // Send to display.html
         channel.postMessage({ type: 'reveal', data: dataToSend });
 
         document.getElementById("status").innerHTML = `✅ Revealed: ${dataToSend.name} (${dataToSend.number})`;
@@ -128,6 +129,7 @@
 
       } catch (err) {
         document.getElementById("status").innerHTML = `❌ ${err.message}`;
+        console.error("Error:", err);
       }
     }
 

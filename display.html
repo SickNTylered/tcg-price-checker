@@ -106,8 +106,10 @@
       const back = document.getElementById('backFace');
       back.className = `face back ${data.cardTypeKey || 'default'}`;
 
-      // Set front
-      document.getElementById('cardImage').src = data.image || "https://picsum.photos/id/237/240/340";
+      // Set front - use a more reliable image host or direct card image
+      const imgElement = document.getElementById('cardImage');
+      imgElement.src = data.image || "https://picsum.photos/id/237/240/340";  // fallback to picsum (more stable)
+
       document.getElementById('name').textContent = `${data.name || "Unknown"} (${data.number || "OPXX-XXX"})`;
       document.getElementById('details').textContent = `${data.printing || "Regular"} • ${data.lang || "ENG"}`;
       document.getElementById('price').textContent = `ENG: $${data.engPrice || "N/A"} • JP: $${data.jpPrice || "N/A"}`;
@@ -126,9 +128,8 @@
       }
     };
 
-    // For manual testing in browser console
     window.showCardReveal = showCardReveal;
-    console.log("✅ Display ready. Open control.html in another tab and use :pc commands.");
+    console.log("✅ Display ready.");
   </script>
 </body>
 </html>

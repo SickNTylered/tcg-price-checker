@@ -10,13 +10,13 @@
     input, button, select { padding: 14px; font-size: 18px; margin: 10px; border-radius: 8px; }
     input { width: 520px; background: #1f1f2e; color: #fff; border: 2px solid #00ff9d; }
     button { background: #00ff9d; color: #000; border: none; font-weight: bold; cursor: pointer; }
-    select { background: #1f1f2e; color: #fff; border: 2px solid #00ff9d; width: 180px; }
+    select { background: #1f1f2e; color: #fff; border: 2px solid #00ff9d; width: 200px; }
     #status { margin-top: 20px; font-size: 16px; min-height: 30px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>One Piece Price Check Control (OPTCG + Currency)</h2>
+    <h2>One Piece Price Check Control</h2>
     
     <div style="margin-bottom:20px;">
       <strong>Currency:</strong> 
@@ -40,15 +40,14 @@
   <script>
     const channel = new BroadcastChannel('card_reveal_channel');
 
-    // Simple free exchange rate API (no key needed, updates daily)
     async function getExchangeRate(toCurrency) {
-      if (toCurrency === "USD") return 1; // No conversion needed
+      if (toCurrency === "USD") return 1;
       try {
         const res = await fetch(`https://api.exchangerate-api.com/v4/latest/USD`);
         const data = await res.json();
         return data.rates[toCurrency] || 1;
       } catch (e) {
-        console.warn("Currency conversion failed, showing USD");
+        console.warn("Currency conversion failed");
         return 1;
       }
     }
@@ -61,14 +60,14 @@
       }
 
       const selectedCurrency = document.getElementById("currency").value;
-      document.getElementById("status").innerHTML = `Fetching card + converting to ${selectedCurrency}...`;
+      document.getElementById("status").innerHTML = `Fetching + converting to ${selectedCurrency}...`;
 
       const parts = cmd.toLowerCase().replace(":pc", "").trim().split(/\s+/);
       let cardNum = null;
       let isAlt = false;
       for (let p of parts) {
         if (/^[a-z0-9]+-\d+$/.test(p)) cardNum = p.toUpperCase();
-        if (['aa','alt','parallel','p1'].includes(p)) isAlt = true;
+        if (['aa','alt','parallel','p1','sp'].includes(p)) isAlt = true;
       }
       if (!cardNum) {
         document.getElementById("status").innerHTML = "❌ No card number";
@@ -90,27 +89,32 @@
         if (selected.rarity === "L" || nameLower.includes("leader")) cardTypeKey = "leader";
         else if (nameLower.includes("don") || nameLower.includes("dawn")) cardTypeKey = "don";
 
-        // Get exchange rate
         const rate = await getExchangeRate(selectedCurrency);
-        const usdPrice = selected.market_price || 0;
-        const convertedPrice = (usdPrice * rate).toFixed(2);
+        const usdEng = selected.market_price || 0;
+        const convertedEng = (usdEng * rate).toFixed(2);
+
+        // JP price (if available in OPTCG or fallback)
+        let jpPrice = "N/A";
+        if (selected.jp_market_price) {
+          jpPrice = (selected.jp_market_price * rate).toFixed(2);
+        }
 
         const dataToSend = {
           name: selected.card_name,
           number: selected.card_set_id,
           printing: isAlt ? "Alternate Art" : "Regular",
-          engPrice: convertedPrice,
-          jpPrice: "N/A",
+          engPrice: convertedEng,
+          jpPrice: jpPrice,
           lang: "ENG",
           image: selected.card_image,
           cardTypeKey: cardTypeKey,
-          currency: selectedCurrency   // ← Passed to display
+          currency: selectedCurrency
         };
 
-        console.log("📤 Sending:", dataToSend);
+        console.log("📤 Sending to display:", dataToSend);
         channel.postMessage({ type: 'reveal', data: dataToSend });
 
-        document.getElementById("status").innerHTML = `✅ Revealed in ${selectedCurrency}: $${convertedPrice}`;
+        document.getElementById("status").innerHTML = `✅ Revealed in ${selectedCurrency}`;
         document.getElementById("command").value = "";
 
       } catch (err) {

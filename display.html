@@ -2,44 +2,141 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>One Piece Reveal Test</title>
+  <title>One Piece Price Reveal</title>
   <style>
-    body {
-      margin: 0;
-      background: rgba(0, 0, 0, 0) !important;
-      color: white;
-      font-family: Arial, sans-serif;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      text-align: center;
+    body { 
+      margin:0; 
+      background: rgba(0,0,0,0) !important; 
+      font-family: Arial, sans-serif; 
+      overflow: hidden; 
+      perspective: 1400px; 
     }
-    .card {
+
+    #scene {
+      position: absolute; 
+      left: 80px; 
+      bottom: 100px; 
       width: 720px;
-      height: 420px;
-      background: linear-gradient(135deg, #1a1a2e, #16213e);
-      border-radius: 18px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 32px;
-      border: 4px solid #ffd700;
     }
+
+    .card {
+      width: 100%; 
+      height: 420px;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 1.5s cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+
+    .card.show-front {
+      transform: rotateY(180deg);
+    }
+
+    .face {
+      position: absolute; 
+      width: 100%; 
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 18px; 
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+      background-size: cover;
+      background-position: center;
+    }
+
+    .back {
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+    }
+    .back.leader { background: linear-gradient(135deg, #8b0000, #4b0000); }
+    .back.don    { background: linear-gradient(135deg, #ffd700, #b8860b); }
+
+    .front {
+      background: #111;
+      transform: rotateY(180deg);
+      display: flex; 
+      align-items: center; 
+      gap: 25px; 
+      padding: 25px;
+    }
+
+    .front img {
+      width: 240px; 
+      border-radius: 12px; 
+      border: 4px solid #ffd700;
+      box-shadow: 0 0 30px #ffd700;
+    }
+
+    .info { 
+      color: white; 
+      flex: 1; 
+    }
+    .name { font-size: 26px; font-weight: bold; margin: 0 0 8px 0; }
+    .details { font-size: 18px; opacity: 0.9; }
+    .price { font-size: 32px; font-weight: bold; color: #00ff9d; }
   </style>
 </head>
 <body>
-  <div class="card">
-    Test Card Reveal<br>
-    If you see this → base page is working!<br>
-    <small style="font-size:18px; margin-top:20px; display:block;">Now we can add the flip animation back</small>
+  <div id="scene">
+    <div id="card" class="card">
+      <div id="backFace" class="face back"></div>
+      
+      <div class="face front">
+        <img id="cardImage" src="https://placehold.co/240x340/png?text=Loading+Card..." alt="Card">
+        <div class="info">
+          <div class="name" id="name">Card Name</div>
+          <div class="details" id="details">Printing • LANG</div>
+          <div class="price" id="price">ENG: $XX • JP: $XX</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
-    console.log("✅ Simple test page loaded successfully");
-    // Manual test in console: document.body.style.background = 'red';
+    const card = document.getElementById('card');
+    const backFace = document.getElementById('backFace');
+    const imgElement = document.getElementById('cardImage');
+
+    const channel = new BroadcastChannel('card_reveal_channel');
+
+    function showCardReveal(data = {}) {
+      console.log("🎴 Reveal triggered:", data);
+
+      // Set back face
+      backFace.className = `face back ${data.cardTypeKey || 'default'}`;
+
+      // Set image with safe fallback + error handling
+      let imageUrl = data.image || "https://placehold.co/240x340/png?text=No+Image";
+
+      imgElement.onerror = () => {
+        console.warn("Card image failed → using fallback");
+        imgElement.src = "https://placehold.co/240x340/png?text=No+Image";
+      };
+
+      imgElement.src = imageUrl;
+
+      // Set text
+      document.getElementById('name').textContent = `${data.name || "Unknown"} (${data.number || "OPXX-XXX"})`;
+      document.getElementById('details').textContent = `${data.printing || "Regular"} • ${data.lang || "ENG"}`;
+      document.getElementById('price').textContent = `ENG: $${data.engPrice || "N/A"} • JP: $${data.jpPrice || "N/A"}`;
+
+      // Trigger flip
+      card.classList.remove('show-front');
+      setTimeout(() => {
+        card.classList.add('show-front');
+      }, 150);
+    }
+
+    // Listen for messages from control.html
+    channel.onmessage = (event) => {
+      if (event.data && event.data.type === 'reveal') {
+        showCardReveal(event.data.data);
+      }
+    };
+
+    // For manual testing in browser console
+    window.showCardReveal = showCardReveal;
+
+    console.log("✅ Full display.html ready! Test manually with:");
+    console.log("showCardReveal({ name: 'Monkey D. Luffy', number: 'OP05-001', image: 'https://placehold.co/240x340/png?text=Luffy' });");
   </script>
 </body>
 </html>

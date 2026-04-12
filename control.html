@@ -99,6 +99,14 @@
           cardTypeKey = "don";
         }
 
+                // Try multiple possible image fields from JustTCG response
+        let cardImage = card.image || 
+                        (card.images && card.images[0]) || 
+                        (card.images && card.images.front) || 
+                        null;
+
+        console.log("Raw card image from API:", cardImage);   // Check this in control console
+
         const dataToSend = {
           name: card.name || "Unknown Card",
           number: card.number || cardNum,
@@ -106,9 +114,11 @@
           engPrice: selected.price || "N/A",
           jpPrice: "N/A",
           lang: (selected.language || "EN").toUpperCase().includes("JP") ? "JP" : "ENG",
-          image: card.image || card.images?.[0] || "https://via.placeholder.com/245x340/1a1a2e/ffd700?text=No+Image",
+          image: cardImage || "https://picsum.photos/id/237/240/340",
           cardTypeKey: cardTypeKey
         };
+
+        console.log("Final data being sent to display:", dataToSend);
 
         // Send to display.html via BroadcastChannel
         channel.postMessage({ type: 'reveal', data: dataToSend });

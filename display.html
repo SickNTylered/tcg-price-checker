@@ -96,32 +96,38 @@
   <script>
     const card = document.getElementById('card');
     const backFace = document.getElementById('backFace');
+    const imgElement = document.getElementById('cardImage');
 
     const channel = new BroadcastChannel('card_reveal_channel');
 
     function showCardReveal(data = {}) {
-      console.log("🎴 Reveal triggered:", data);
+      console.log("🎴 Reveal triggered with data:", data);
 
-      // Set back face based on card type
-      const back = document.getElementById('backFace');
-      back.className = `face back ${data.cardTypeKey || 'default'}`;
+      // Set back face
+      backFace.className = `face back ${data.cardTypeKey || 'default'}`;
 
-      // Set front - use a more reliable image host or direct card image
-      const imgElement = document.getElementById('cardImage');
-      imgElement.src = data.image || "https://picsum.photos/id/237/240/340";  // fallback to picsum (more stable)
+      // Set image with reliable fallback + error handling
+      let imageUrl = data.image || "https://picsum.photos/id/237/240/340";
 
+      imgElement.onerror = () => {
+        console.warn("Card image failed to load, using fallback");
+        imgElement.src = "https://picsum.photos/id/237/240/340";
+      };
+
+      imgElement.src = imageUrl;
+
+      // Set text
       document.getElementById('name').textContent = `${data.name || "Unknown"} (${data.number || "OPXX-XXX"})`;
       document.getElementById('details').textContent = `${data.printing || "Regular"} • ${data.lang || "ENG"}`;
       document.getElementById('price').textContent = `ENG: $${data.engPrice || "N/A"} • JP: $${data.jpPrice || "N/A"}`;
 
-      // Trigger flip + effects
+      // Flip animation
       card.classList.remove('show-front');
       setTimeout(() => {
         card.classList.add('show-front');
       }, 150);
     }
 
-    // Listen for messages from control panel
     channel.onmessage = (event) => {
       if (event.data.type === 'reveal') {
         showCardReveal(event.data.data);
@@ -129,7 +135,7 @@
     };
 
     window.showCardReveal = showCardReveal;
-    console.log("✅ Display ready.");
+    console.log("✅ Display ready - waiting for reveal command");
   </script>
 </body>
 </html>

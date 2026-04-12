@@ -8,21 +8,27 @@
       margin:0; 
       background: rgba(0,0,0,0) !important; 
       overflow: hidden; 
+      perspective: 1400px; 
     }
 
     #scene {
       position: absolute; 
       left: 80px; 
-      bottom: 100px; 
+      bottom: -500px;   /* Start off-screen below */
       width: 720px;
+      transition: bottom 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+
+    #scene.show {
+      bottom: 100px;   /* Rise to visible position */
     }
 
     .card {
       width: 100%; 
       height: 420px;
       position: relative;
-      transition: transform 1.2s ease-in-out;
       transform-style: preserve-3d;
+      transition: transform 1.4s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
 
     .card.show-front {
@@ -61,29 +67,24 @@
       box-shadow: 0 0 30px #ffd700;
     }
 
-    .info { 
-      color: white; 
-      flex: 1; 
-    }
+    .info { color: white; flex: 1; }
     .name { font-size: 26px; font-weight: bold; margin: 0 0 8px 0; }
     .details { font-size: 18px; opacity: 0.9; }
-    .price { font-size: 28px; font-weight: bold; color: #00ff9d; line-height: 1.3; }
+    .price { font-size: 32px; font-weight: bold; color: #00ff9d; }
 
-    /* Visible test button - always on top */
+    /* Sparkle overlay */
+    .sparkles {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+      background: radial-gradient(circle, rgba(255,215,0,0.6) 10%, transparent 70%);
+      opacity: 0; pointer-events: none;
+      animation: sparkle 1.8s ease-out forwards;
+    }
+    @keyframes sparkle { 0% { opacity: 0; transform: scale(0.8); } 20% { opacity: 1; } 100% { opacity: 0; transform: scale(1.2); } }
+
     #testButton {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      z-index: 9999;
-      padding: 12px 20px;
-      background: #00ff9d;
-      color: #000;
-      border: none;
-      border-radius: 8px;
-      font-weight: bold;
-      font-size: 16px;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+      position: absolute; top: 20px; left: 20px; z-index: 9999;
+      padding: 12px 24px; background: #00ff9d; color: #000; border: none;
+      border-radius: 8px; font-weight: bold; cursor: pointer;
     }
   </style>
 </head>
@@ -91,7 +92,6 @@
   <div id="scene">
     <div id="card" class="card">
       <div id="backFace" class="face back"></div>
-      
       <div class="face front">
         <img id="cardImage" src="https://picsum.photos/id/237/240/340" alt="Card">
         <div class="info">
@@ -99,77 +99,82 @@
           <div class="details" id="details">Printing • LANG</div>
           <div class="price" id="price">ENG: $XX AUD • JP: $XX AUD</div>
         </div>
+        <div class="sparkles"></div>
       </div>
     </div>
   </div>
 
-  <!-- Visible Test Button -->
-  <button id="testButton" onclick="manualTestReveal()">
-    🔄 Manual Reveal Test (Click Me in OBS)
-  </button>
+  <button id="testButton" onclick="manualTestReveal()">🔄 Manual Test Reveal</button>
 
   <script>
+    const scene = document.getElementById('scene');
     const card = document.getElementById('card');
     const backFace = document.getElementById('backFace');
     const imgElement = document.getElementById('cardImage');
 
-    const channel = new BroadcastChannel('card_reveal_channel');
+    function getUrlParams() {
+      const p = new URLSearchParams(window.location.search);
+      return {
+        name: p.get('name'), number: p.get('number'), printing: p.get('printing'),
+        engPrice: p.get('engPrice'), jpPrice: p.get('jpPrice'),
+        image: p.get('image'), currency: p.get('currency') || 'AUD',
+        cardTypeKey: p.get('cardTypeKey') || 'default'
+      };
+    }
 
     function showCardReveal(data = {}) {
       console.log("🎴 Reveal triggered:", data);
 
       backFace.className = `face back ${data.cardTypeKey || 'default'}`;
 
-      let imageUrl = data.image || "https://picsum.photos/id/237/240/340";
-      imgElement.src = imageUrl;
+      // Set image early
+      imgElement.src = data.image || "https://picsum.photos/id/237/240/340";
       imgElement.onerror = () => imgElement.src = "https://picsum.photos/id/237/240/340";
 
       document.getElementById('name').textContent = `${data.name || "Unknown"} (${data.number || "OPXX-XXX"})`;
       document.getElementById('details').textContent = `${data.printing || "Regular"} • ${data.lang || "ENG"}`;
 
-      let priceText = `ENG: $${data.engPrice || "N/A"} ${data.currency || "AUD"}`;
-      if (data.jpPrice && data.jpPrice !== "N/A") {
-        priceText += ` • JP: $${data.jpPrice} ${data.currency || "AUD"}`;
-      }
+      let priceText = `ENG: $${data.engPrice || "N/A"} ${data.currency}`;
+      if (data.jpPrice && data.jpPrice !== "N/A") priceText += ` • JP: $${data.jpPrice} ${data.currency}`;
       document.getElementById('price').textContent = priceText;
 
-      // Flip
+      // Animation sequence
+      scene.classList.add('show');                    // Rise from bottom
       card.classList.remove('show-front');
-      void card.offsetWidth;
+
       setTimeout(() => {
-        card.classList.add('show-front');
-      }, 80);
+        card.classList.add('show-front');             // Flip
+        document.querySelector('.sparkles').style.animation = 'sparkle 1.8s ease-out forwards';
+      }, 600);
+
+      // Auto hide after ~10 seconds (drop off screen)
+      setTimeout(() => {
+        scene.style.transition = 'bottom 0.8s ease-in';
+        scene.style.bottom = '-500px';
+        setTimeout(() => {
+          scene.classList.remove('show');
+          scene.style.transition = 'bottom 0.8s cubic-bezier(0.25, 0.1, 0.25, 1)';
+          card.classList.remove('show-front');
+        }, 900);
+      }, 10500);
     }
 
-    // Manual test function for the button
     function manualTestReveal() {
       showCardReveal({
-        name: "Monkey D. Luffy",
-        number: "OP05-001",
-        printing: "Alternate Art",
-        engPrice: "45.50",
-        jpPrice: "22.00",
-        image: "https://picsum.photos/id/237/240/340",
-        currency: "AUD",
-        cardTypeKey: "default"
+        name: "Nami", number: "OP05-001", printing: "Alternate Art",
+        engPrice: "45.50", jpPrice: "22.00", image: "https://picsum.photos/id/237/240/340",
+        currency: "AUD", cardTypeKey: "default"
       });
     }
 
-    // Listen for control panel (in case it works)
-    channel.onmessage = (event) => {
-      if (event.data && event.data.type === 'reveal') {
-        showCardReveal(event.data.data);
+    window.onload = function() {
+      const params = getUrlParams();
+      if (params.name) {
+        setTimeout(() => showCardReveal(params), 300);
       }
     };
 
-    // Auto test on load so you can see the front immediately
-    window.onload = function() {
-      console.log("✅ Display loaded - auto showing test card");
-      setTimeout(manualTestReveal, 500);   // Small delay so back is visible first
-    };
-
-    window.showCardReveal = showCardReveal;
-    console.log("✅ Page ready. Click the green button in OBS to test flip.");
+    console.log("✅ Final reveal version loaded. Click green button to test.");
   </script>
 </body>
 </html>

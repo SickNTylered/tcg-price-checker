@@ -53,7 +53,26 @@
     }
 
     async function processCommand() {
-      const cmd = document.getElementById("command").value.trim();
+              // Build URL with all data as query parameters
+        const baseUrl = "https://sickntylered.github.io/tcg-price-checker/display.html";   // ← CHANGE THIS TO YOUR ACTUAL DISPLAY URL
+
+        const revealUrl = `${baseUrl}?` +
+          `name=${encodeURIComponent(selected.card_name)}&` +
+          `number=${encodeURIComponent(selected.card_set_id)}&` +
+          `printing=${encodeURIComponent(isAlt ? "Alternate Art" : "Regular")}&` +
+          `engPrice=${convertedEng}&` +
+          `jpPrice=${jpPrice}&` +
+          `image=${encodeURIComponent(selected.card_image || "")}&` +
+          `currency=${selectedCurrency}&` +
+          `cardTypeKey=${cardTypeKey}`;
+
+        console.log("🔗 Opening reveal URL:", revealUrl);
+
+        // Open or refresh the display page with new data
+        window.open(revealUrl, '_blank');
+
+        document.getElementById("status").innerHTML = `✅ Revealed in ${selectedCurrency}`;
+        document.getElementById("command").value = "";
       if (!cmd.toLowerCase().startsWith(":pc")) {
         document.getElementById("status").innerHTML = "❌ Must start with :pc";
         return;

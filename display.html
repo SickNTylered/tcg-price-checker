@@ -37,8 +37,8 @@
       background-position: center;
     }
     .back { background: linear-gradient(135deg, #1a1a2e, #16213e); }
-    .back.leader { background: linear-gradient(135deg, #8b0000, #4b0000); } /* red for leaders */
-    .back.don    { background: linear-gradient(135deg, #ffd700, #b8860b); } /* gold for Don */
+    .back.leader { background: linear-gradient(135deg, #8b0000, #4b0000); }
+    .back.don    { background: linear-gradient(135deg, #ffd700, #b8860b); }
 
     .front {
       background: #111;
@@ -58,21 +58,6 @@
     .name { font-size: 26px; font-weight: bold; margin: 0 0 8px 0; }
     .details { font-size: 18px; opacity: 0.9; }
     .price { font-size: 32px; font-weight: bold; color: #00ff9d; }
-
-    .shine, .sparkles { 
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; 
-    }
-    .shine { 
-      background: linear-gradient(120deg, transparent, rgba(255,255,255,0.8), transparent); 
-      background-size: 200% 100%; 
-      animation: shineAnim 1.6s ease-in-out;
-    }
-    @keyframes shineAnim { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-    .sparkles { 
-      background: radial-gradient(circle, rgba(255,215,0,0.9) 20%, transparent 70%); 
-      animation: sparklePop 2s ease-out forwards;
-    }
-    @keyframes sparklePop { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
   </style>
 </head>
 <body>
@@ -81,14 +66,12 @@
       <div id="backFace" class="face back"></div>
       
       <div class="face front">
-        <img id="cardImage" src="https://picsum.photos/id/237/240/340" alt="Card">
+        <img id="cardImage" src="https://placehold.co/240x340/png?text=Loading..." alt="Card">
         <div class="info">
           <div class="name" id="name">Card Name</div>
           <div class="details" id="details">Printing • LANG</div>
           <div class="price" id="price">ENG: $XX • JP: $XX</div>
         </div>
-        <div class="shine"></div>
-        <div class="sparkles"></div>
       </div>
     </div>
   </div>
@@ -101,41 +84,34 @@
     const channel = new BroadcastChannel('card_reveal_channel');
 
     function showCardReveal(data = {}) {
-      console.log("🎴 Reveal triggered with data:", data);
+      console.log("🎴 Reveal triggered:", data);
 
-      // Set back face
       backFace.className = `face back ${data.cardTypeKey || 'default'}`;
 
-      // Set image with reliable fallback + error handling
-      let imageUrl = data.image || "https://picsum.photos/id/237/240/340";
+      // Safe image with strong fallback
+      let imageUrl = data.image || "https://placehold.co/240x340/png?text=No+Image";
 
-      imgElement.onerror = () => {
-        console.warn("Card image failed to load, using fallback");
-        imgElement.src = "https://picsum.photos/id/237/240/340";
+      imgElement.onerror = function() {
+        console.warn("Image failed to load → using safe fallback");
+        imgElement.src = "https://placehold.co/240x340/png?text=No+Image";
       };
 
       imgElement.src = imageUrl;
 
-      // Set text
       document.getElementById('name').textContent = `${data.name || "Unknown"} (${data.number || "OPXX-XXX"})`;
       document.getElementById('details').textContent = `${data.printing || "Regular"} • ${data.lang || "ENG"}`;
       document.getElementById('price').textContent = `ENG: $${data.engPrice || "N/A"} • JP: $${data.jpPrice || "N/A"}`;
 
-      // Flip animation
       card.classList.remove('show-front');
-      setTimeout(() => {
-        card.classList.add('show-front');
-      }, 150);
+      setTimeout(() => card.classList.add('show-front'), 150);
     }
 
     channel.onmessage = (event) => {
-      if (event.data.type === 'reveal') {
-        showCardReveal(event.data.data);
-      }
+      if (event.data.type === 'reveal') showCardReveal(event.data.data);
     };
 
     window.showCardReveal = showCardReveal;
-    console.log("✅ Display ready - waiting for reveal command");
+    console.log("✅ Display ready. Test with: showCardReveal({name:'Test', image:'https://placehold.co/240x340/png?text=Test+Card'})");
   </script>
 </body>
 </html>

@@ -7,26 +7,30 @@
     body { font-family: Arial, sans-serif; background: #0f0f19; color: #fff; padding: 30px; text-align: center; }
     .container { max-width: 620px; margin: 0 auto; }
     h2 { color: #00ff9d; }
-    input, button { padding: 14px; font-size: 18px; margin: 10px; border-radius: 8px; }
+    input, button, select { padding: 14px; font-size: 18px; margin: 10px; border-radius: 8px; }
     input { width: 520px; background: #1f1f2e; color: #fff; border: 2px solid #00ff9d; }
     button { background: #00ff9d; color: #000; border: none; font-weight: bold; cursor: pointer; }
+    select { background: #1f1f2e; color: #fff; border: 2px solid #00ff9d; width: 180px; }
     #status { margin-top: 20px; font-size: 16px; min-height: 30px; }
-    .api-section { background: #1a1a2e; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>One Piece Price Check Control</h2>
+    <h2>One Piece Price Check Control (OPTCG + Currency)</h2>
     
-    <div class="api-section">
-      <p><strong>JustTCG API Key</strong> (saved automatically)</p>
-      <input type="password" id="apiKey" placeholder="Paste your JustTCG API key here">
-      <button onclick="saveApiKey()">Save API Key</button>
-      <div id="apiStatus" style="font-size:14px; margin-top:8px;"></div>
+    <div style="margin-bottom:20px;">
+      <strong>Currency:</strong> 
+      <select id="currency">
+        <option value="AUD" selected>AUD - Australian Dollar</option>
+        <option value="USD">USD - US Dollar</option>
+        <option value="EUR">EUR - Euro</option>
+        <option value="GBP">GBP - British Pound</option>
+        <option value="JPY">JPY - Japanese Yen</option>
+      </select>
     </div>
 
-    <p>Paste chat command → press button or Enter</p>
-    <input type="text" id="command" placeholder=":pc OP05-001" autofocus>
+    <p>Paste chat command</p>
+    <input type="text" id="command" placeholder=":pc OP05-001 AA" autofocus>
     <br>
     <button onclick="processCommand()">🔥 FETCH & REVEAL ON STREAM</button>
 
@@ -34,22 +38,18 @@
   </div>
 
   <script>
-    const GAME_SLUG = "one-piece-card-game";
-    let API_KEY = localStorage.getItem("justtcg_api_key") || "";
     const channel = new BroadcastChannel('card_reveal_channel');
 
-    if (API_KEY) {
-      document.getElementById("apiKey").value = API_KEY;
-      document.getElementById("apiStatus").innerHTML = "✅ API key loaded";
-    }
-
-    function saveApiKey() {
-      API_KEY = document.getElementById("apiKey").value.trim();
-      if (API_KEY) {
-        localStorage.setItem("justtcg_api_key", API_KEY);
-        document.getElementById("apiStatus").innerHTML = "✅ Saved!";
-      } else {
-        document.getElementById("apiStatus").innerHTML = "❌ Enter a valid key";
+    // Simple free exchange rate API (no key needed, updates daily)
+    async function getExchangeRate(toCurrency) {
+      if (toCurrency === "USD") return 1; // No conversion needed
+      try {
+        const res = await fetch(`https://api.exchangerate-api.com/v4/latest/USD`);
+        const data = await res.json();
+        return data.rates[toCurrency] || 1;
+      } catch (e) {
+        console.warn("Currency conversion failed, showing USD");
+        return 1;
       }
     }
 
@@ -59,77 +59,63 @@
         document.getElementById("status").innerHTML = "❌ Must start with :pc";
         return;
       }
-      if (!API_KEY) {
-        document.getElementById("status").innerHTML = "❌ Save your JustTCG API key first";
-        return;
-      }
 
-      document.getElementById("status").innerHTML = "Fetching from JustTCG...";
+      const selectedCurrency = document.getElementById("currency").value;
+      document.getElementById("status").innerHTML = `Fetching card + converting to ${selectedCurrency}...`;
 
-      // Parse command
       const parts = cmd.toLowerCase().replace(":pc", "").trim().split(/\s+/);
       let cardNum = null;
+      let isAlt = false;
       for (let p of parts) {
         if (/^[a-z0-9]+-\d+$/.test(p)) cardNum = p.toUpperCase();
+        if (['aa','alt','parallel','p1'].includes(p)) isAlt = true;
       }
       if (!cardNum) {
-        document.getElementById("status").innerHTML = "❌ No card number (e.g. OP05-001)";
+        document.getElementById("status").innerHTML = "❌ No card number";
         return;
       }
 
       try {
-        const res = await fetch(`https://api.justtcg.com/v1/cards?game=${GAME_SLUG}&q=${cardNum}`, {
-          headers: { "X-API-Key": API_KEY }
-        });
+        const res = await fetch(`https://optcgapi.com/api/sets/card/${cardNum}/`);
+        if (!res.ok) throw new Error("Card not found");
+        const cards = await res.json();
 
-        if (!res.ok) throw new Error("API error");
-        const json = await res.json();
-        const card = json.data?.[0];
-        if (!card) throw new Error("Card not found");
+        let selected = cards.find(c => 
+          (isAlt && c.card_name.toLowerCase().includes("alternate")) || 
+          (!isAlt && !c.card_name.toLowerCase().includes("alternate"))
+        ) || cards[0];
 
-        const variants = card.variants || [];
-        let selected = variants.find(v => v.condition?.toLowerCase().includes("near mint")) || variants[0] || {};
-
-        // Detect card type for back face
-        const nameLower = (card.name || "").toLowerCase();
+        const nameLower = selected.card_name.toLowerCase();
         let cardTypeKey = "default";
-        if ((card.rarity || "").toUpperCase() === "L" || nameLower.includes("leader") || (card.type || "").toLowerCase().includes("leader")) {
-          cardTypeKey = "leader";
-        } else if (nameLower.includes("don") || nameLower.includes("dawn") || (card.type || "").toLowerCase().includes("don")) {
-          cardTypeKey = "don";
-        }
+        if (selected.rarity === "L" || nameLower.includes("leader")) cardTypeKey = "leader";
+        else if (nameLower.includes("don") || nameLower.includes("dawn")) cardTypeKey = "don";
 
-        // Improved image extraction
-        let cardImage = null;
-        if (card.image) cardImage = card.image;
-        else if (card.images && Array.isArray(card.images)) cardImage = card.images[0];
-        else if (card.images && card.images.front) cardImage = card.images.front;
-
-        console.log("🔍 Raw card data from API:", card);
-        console.log("🔍 Extracted image URL:", cardImage);
+        // Get exchange rate
+        const rate = await getExchangeRate(selectedCurrency);
+        const usdPrice = selected.market_price || 0;
+        const convertedPrice = (usdPrice * rate).toFixed(2);
 
         const dataToSend = {
-          name: card.name || "Unknown Card",
-          number: card.number || cardNum,
-          printing: selected.printing || "Regular",
-          engPrice: selected.price || "N/A",
+          name: selected.card_name,
+          number: selected.card_set_id,
+          printing: isAlt ? "Alternate Art" : "Regular",
+          engPrice: convertedPrice,
           jpPrice: "N/A",
-          lang: (selected.language || "EN").toUpperCase().includes("JP") ? "JP" : "ENG",
-          image: cardImage || "https://placehold.co/240x340/png?text=No+Image",
-          cardTypeKey: cardTypeKey
+          lang: "ENG",
+          image: selected.card_image,
+          cardTypeKey: cardTypeKey,
+          currency: selectedCurrency   // ← Passed to display
         };
 
-        console.log("📤 Sending to display:", dataToSend);
-
-        // Send to display.html
+        console.log("📤 Sending:", dataToSend);
         channel.postMessage({ type: 'reveal', data: dataToSend });
 
-        document.getElementById("status").innerHTML = `✅ Revealed: ${dataToSend.name} (${dataToSend.number})`;
+        document.getElementById("status").innerHTML = `✅ Revealed in ${selectedCurrency}: $${convertedPrice}`;
         document.getElementById("command").value = "";
 
       } catch (err) {
         document.getElementById("status").innerHTML = `❌ ${err.message}`;
-        console.error("Error:", err);
+        console.error(err);
       }
     }
 

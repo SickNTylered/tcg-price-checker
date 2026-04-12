@@ -1,29 +1,97 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>One Piece Price Reveal</title>
   <style>
-    body { margin:0; background: rgba(0,0,0,0) !important; overflow: hidden; }
-    #scene { position: absolute; left: 80px; bottom: 100px; width: 720px; }
-    .card { width: 100%; height: 420px; position: relative; transition: transform 1.2s ease-in-out; transform-style: preserve-3d; }
-    .card.show-front { transform: rotateY(180deg); }
-    .face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 18px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.7); }
-    .back { background: linear-gradient(135deg, #1a1a2e, #16213e); }
+    body { 
+      margin:0; 
+      background: rgba(0,0,0,0) !important; 
+      overflow: hidden; 
+    }
+
+    #scene {
+      position: absolute; 
+      left: 80px; 
+      bottom: 100px; 
+      width: 720px;
+    }
+
+    .card {
+      width: 100%; 
+      height: 420px;
+      position: relative;
+      transition: transform 1.2s ease-in-out;
+      transform-style: preserve-3d;
+    }
+
+    .card.show-front {
+      transform: rotateY(180deg);
+    }
+
+    .face {
+      position: absolute; 
+      width: 100%; 
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 18px; 
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+    }
+
+    .back {
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+    }
     .back.leader { background: linear-gradient(135deg, #8b0000, #4b0000); }
     .back.don    { background: linear-gradient(135deg, #ffd700, #b8860b); }
-    .front { background: #111; transform: rotateY(180deg); display: flex; align-items: center; gap: 25px; padding: 25px; }
-    .front img { width: 240px; border-radius: 12px; border: 4px solid #ffd700; box-shadow: 0 0 30px #ffd700; }
-    .info { color: white; flex: 1; }
+
+    .front {
+      background: #111;
+      transform: rotateY(180deg);
+      display: flex; 
+      align-items: center; 
+      gap: 25px; 
+      padding: 25px;
+    }
+
+    .front img {
+      width: 240px; 
+      border-radius: 12px; 
+      border: 4px solid #ffd700;
+      box-shadow: 0 0 30px #ffd700;
+    }
+
+    .info { 
+      color: white; 
+      flex: 1; 
+    }
     .name { font-size: 26px; font-weight: bold; margin: 0 0 8px 0; }
     .details { font-size: 18px; opacity: 0.9; }
     .price { font-size: 28px; font-weight: bold; color: #00ff9d; line-height: 1.3; }
+
+    /* Visible test button - always on top */
+    #testButton {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 9999;
+      padding: 12px 20px;
+      background: #00ff9d;
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+    }
   </style>
 </head>
 <body>
   <div id="scene">
     <div id="card" class="card">
       <div id="backFace" class="face back"></div>
+      
       <div class="face front">
         <img id="cardImage" src="https://picsum.photos/id/237/240/340" alt="Card">
         <div class="info">
@@ -34,7 +102,12 @@
       </div>
     </div>
   </div>
-// Stable version //
+
+  <!-- Visible Test Button -->
+  <button id="testButton" onclick="manualTestReveal()">
+    🔄 Manual Reveal Test (Click Me in OBS)
+  </button>
+
   <script>
     const card = document.getElementById('card');
     const backFace = document.getElementById('backFace');
@@ -47,37 +120,56 @@
 
       backFace.className = `face back ${data.cardTypeKey || 'default'}`;
 
-      // Pre-set image (reduces flash)
       let imageUrl = data.image || "https://picsum.photos/id/237/240/340";
-      imgElement.src = imageUrl;  // Set early
+      imgElement.src = imageUrl;
       imgElement.onerror = () => imgElement.src = "https://picsum.photos/id/237/240/340";
 
       document.getElementById('name').textContent = `${data.name || "Unknown"} (${data.number || "OPXX-XXX"})`;
       document.getElementById('details').textContent = `${data.printing || "Regular"} • ${data.lang || "ENG"}`;
 
-      // Dual price display
       let priceText = `ENG: $${data.engPrice || "N/A"} ${data.currency || "AUD"}`;
       if (data.jpPrice && data.jpPrice !== "N/A") {
         priceText += ` • JP: $${data.jpPrice} ${data.currency || "AUD"}`;
       }
       document.getElementById('price').textContent = priceText;
 
-      // Flip after a tiny delay for smoother feel
+      // Flip
       card.classList.remove('show-front');
       void card.offsetWidth;
-      setTimeout(() => card.classList.add('show-front'), 80);
+      setTimeout(() => {
+        card.classList.add('show-front');
+      }, 80);
     }
 
+    // Manual test function for the button
+    function manualTestReveal() {
+      showCardReveal({
+        name: "Monkey D. Luffy",
+        number: "OP05-001",
+        printing: "Alternate Art",
+        engPrice: "45.50",
+        jpPrice: "22.00",
+        image: "https://picsum.photos/id/237/240/340",
+        currency: "AUD",
+        cardTypeKey: "default"
+      });
+    }
+
+    // Listen for control panel (in case it works)
     channel.onmessage = (event) => {
-      if (event.data && event.data.type === 'reveal') showCardReveal(event.data.data);
+      if (event.data && event.data.type === 'reveal') {
+        showCardReveal(event.data.data);
+      }
+    };
+
+    // Auto test on load so you can see the front immediately
+    window.onload = function() {
+      console.log("✅ Display loaded - auto showing test card");
+      setTimeout(manualTestReveal, 500);   // Small delay so back is visible first
     };
 
     window.showCardReveal = showCardReveal;
-    console.log("✅ Display ready with dual prices + smoother image");
+    console.log("✅ Page ready. Click the green button in OBS to test flip.");
   </script>
-  <button onclick="window.showCardReveal({name: 'Test Card', number: 'OP05-001', printing: 'Regular', engPrice: '45.50', jpPrice: '22.00', image: 'https://picsum.photos/id/237/240/340', currency: 'AUD'})" 
-        style="position:absolute; top:10px; left:10px; padding:10px; z-index:100;">
-  Manual Reveal Test
-</button>
 </body>
 </html>

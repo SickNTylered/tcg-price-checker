@@ -17,7 +17,7 @@
     .info { color: white; flex: 1; }
     .name { font-size: 26px; font-weight: bold; margin: 0 0 8px 0; }
     .details { font-size: 18px; opacity: 0.9; }
-    .price { font-size: 32px; font-weight: bold; color: #00ff9d; }
+    .price { font-size: 28px; font-weight: bold; color: #00ff9d; line-height: 1.3; }
   </style>
 </head>
 <body>
@@ -29,7 +29,7 @@
         <div class="info">
           <div class="name" id="name">Card Name</div>
           <div class="details" id="details">Printing • LANG</div>
-          <div class="price" id="price">ENG: $XX AUD</div>
+          <div class="price" id="price">ENG: $XX AUD • JP: $XX AUD</div>
         </div>
       </div>
     </div>
@@ -47,20 +47,25 @@
 
       backFace.className = `face back ${data.cardTypeKey || 'default'}`;
 
+      // Pre-set image (reduces flash)
       let imageUrl = data.image || "https://picsum.photos/id/237/240/340";
+      imgElement.src = imageUrl;  // Set early
       imgElement.onerror = () => imgElement.src = "https://picsum.photos/id/237/240/340";
-      imgElement.src = imageUrl;
 
       document.getElementById('name').textContent = `${data.name || "Unknown"} (${data.number || "OPXX-XXX"})`;
       document.getElementById('details').textContent = `${data.printing || "Regular"} • ${data.lang || "ENG"}`;
-      
-      // Display with selected currency
-      const priceText = `ENG: $${data.engPrice || "N/A"} ${data.currency || "AUD"}`;
+
+      // Dual price display
+      let priceText = `ENG: $${data.engPrice || "N/A"} ${data.currency || "AUD"}`;
+      if (data.jpPrice && data.jpPrice !== "N/A") {
+        priceText += ` • JP: $${data.jpPrice} ${data.currency || "AUD"}`;
+      }
       document.getElementById('price').textContent = priceText;
 
+      // Flip after a tiny delay for smoother feel
       card.classList.remove('show-front');
       void card.offsetWidth;
-      setTimeout(() => card.classList.add('show-front'), 50);
+      setTimeout(() => card.classList.add('show-front'), 80);
     }
 
     channel.onmessage = (event) => {
@@ -68,7 +73,7 @@
     };
 
     window.showCardReveal = showCardReveal;
-    console.log("✅ Display ready with currency support");
+    console.log("✅ Display ready with dual prices + smoother image");
   </script>
 </body>
 </html>

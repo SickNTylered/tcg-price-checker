@@ -46,24 +46,10 @@
     .back {
       background-size: cover;
       background-position: center;
-      z-index: 10;
     }
     .back.default { background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Back.png'); }
     .back.leader { background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Leader.png'); }
     .back.don    { background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Don.png'); }
-
-    .front {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      z-index: 15;
-      opacity: 0;
-      transition: opacity 0.9s ease-in;
-    }
-
-    .front.show {
-      opacity: 1;
-    }
 
     .front img {
       width: 100%;
@@ -71,15 +57,18 @@
       object-fit: contain;
     }
 
-    /* Floating Green Text - Separate high layer */
+    /* Floating Green Text - Below the card, darker saturated green */
     #priceOverlay {
       position: absolute;
-      top: -100px;
+      top: 545px;                    /* Below the card */
       left: 50%;
       transform: translateX(-50%);
-      color: #00ff88;
+      color: #00cc66;                /* Darker saturated green */
       text-align: center;
-      text-shadow: 0 0 15px #00ff88, 0 0 30px #00ff88, 0 0 45px #00ff88;
+      text-shadow: 
+        0 0 10px #00ff88,
+        0 0 20px #00ff88,
+        0 0 35px #00ff88;
       font-size: 22px;
       line-height: 1.3;
       white-space: nowrap;
@@ -92,6 +81,17 @@
     #priceOverlay.show {
       opacity: 1;
     }
+
+    .last-sold {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    .prices {
+      font-size: 27px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -100,16 +100,16 @@
       <!-- Back -->
       <div id="backFace" class="back default"></div>
       
-      <!-- Front -->
+      <!-- Front - Full card art -->
       <div id="frontFace" class="front">
         <img id="cardImage" src="" alt="Card Art">
       </div>
     </div>
 
-    <!-- Text Overlay - OUTSIDE the card container -->
+    <!-- Green Text Below the Card -->
     <div id="priceOverlay">
       <div class="last-sold">LAST SOLD FOR</div>
-      <div id="priceText">ENG: $0.00 • JP: $0.00</div>
+      <div id="priceText" class="prices">ENG: $0.00 • JP: $0.00</div>
     </div>
   </div>
 
@@ -174,7 +174,7 @@
 
     window.showCardReveal = showCardReveal;
 
-    console.log("✅ Text moved to separate layer - should appear above the card now");
+    console.log("✅ Text moved below card - darker green with glow");
   </script>
 </body>
 </html>

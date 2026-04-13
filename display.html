@@ -14,16 +14,10 @@
     #scene {
       position: absolute;
       left: 50%;
-      top: 50%;
-      transform: translate(-50%, 120%);   /* Start below center */
       width: 400px;
-      transition: transform 1.2s cubic-bezier(0.25, 0.1, 0.25, 1);
-      opacity: 0;
-    }
-
-    #scene.show {
-      transform: translate(-50%, -50%);
-      opacity: 1;
+      transform: translateX(-50%);
+      transition: top 1.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+      z-index: 10;
     }
 
     .card-container {
@@ -51,12 +45,22 @@
     .back.leader { background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Leader.png'); }
     .back.don    { background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Don.png'); }
 
+    .front {
+      opacity: 0;
+      transition: opacity 0.9s ease-in;
+    }
+
+    .front.show {
+      opacity: 1;
+    }
+
     .front img {
       width: 100%;
       height: 100%;
       object-fit: contain;
     }
 
+    /* Text below card */
     #priceOverlay {
       position: absolute;
       top: 555px;
@@ -90,12 +94,16 @@
 <body>
   <div id="scene">
     <div class="card-container">
+      <!-- Back -->
       <div id="backFace" class="back default"></div>
+      
+      <!-- Front -->
       <div id="frontFace" class="front">
         <img id="cardImage" src="" alt="Card Art">
       </div>
     </div>
 
+    <!-- Text -->
     <div id="priceOverlay">
       <div class="last-sold">LAST SOLD FOR</div>
       <div id="priceText" class="prices">ENG: $0.00 JP: $0.00</div>
@@ -121,8 +129,8 @@
       }, 16);
     }
 
-    function showCardReveal(data = {}) {
-      console.log("🎴 New reveal started:", data);
+    async function showCardReveal(data = {}) {
+      console.log("New reveal started", data);
 
       // Dynamic back
       let backClass = "default";
@@ -134,16 +142,17 @@
       document.getElementById('cardImage').src = data.image || "https://picsum.photos/id/237/380/530";
 
       // Reset everything
-      scene.classList.remove('show');
+      scene.style.top = '120%';           // Start below screen
       frontFace.classList.remove('show');
       priceOverlay.classList.remove('show');
 
-      // 1. Slide up from bottom showing back
+      // 1. ON TRIGGER: Start with back at bottom
       setTimeout(() => {
-        scene.classList.add('show');
-      }, 100);
+        scene.style.transition = 'top 1.8s cubic-bezier(0.25, 0.1, 0.25, 1)';
+        scene.style.top = '50%';           // Move up to center while still back
+      }, 4000);   // Wait 4 seconds before moving up
 
-      // 2. Stay on back for 5 seconds
+      // 2. After reaching top, wait 7 seconds on back
       setTimeout(() => {
         frontFace.classList.add('show');
         priceOverlay.classList.add('show');
@@ -151,34 +160,28 @@
         const engPrice = parseFloat(data.engPrice) || 0;
         const jpPrice = parseFloat(data.jpPrice) || 0;
         animateCountUp(engPrice, jpPrice);
-      }, 5200);   // 5.2 seconds on back
+      }, 4000 + 1800 + 7000);   // 4s wait + 1.8s move + 7s hold on back
 
-      // 3. Hold everything for ~20 seconds then fade out
+      // 3. Hold final frame for 14 seconds then slide back down
       setTimeout(() => {
-        scene.style.opacity = '0';
+        scene.style.transition = 'top 1.8s cubic-bezier(0.25, 0.1, 0.25, 1)';
+        scene.style.top = '120%';   // Slide back down
         setTimeout(() => {
-          scene.classList.remove('show');
           frontFace.classList.remove('show');
           priceOverlay.classList.remove('show');
-          scene.style.opacity = '1';
-        }, 1200);
-      }, 25200);   // Total ~25 seconds visible
+        }, 2000);
+      }, 4000 + 1800 + 7000 + 14000);   // Total hold time
     }
 
-    // Listen for updates from control
+    // Listen for control panel updates
     window.addEventListener('storage', (e) => {
       if (e.key === 'revealData' && e.newValue) {
         showCardReveal(JSON.parse(e.newValue));
       }
     });
 
-    window.onload = function() {
-      const saved = localStorage.getItem('revealData');
-      if (saved) showCardReveal(JSON.parse(saved));
-    };
-
     window.showCardReveal = showCardReveal;
-    console.log("✅ Back first + 5s hold + 20s reveal + clean reset");
+    console.log("✅ New timing: 4s wait → slide up with back → 7s on back → reveal + text → 14s hold → slide down");
   </script>
 </body>
 </html>

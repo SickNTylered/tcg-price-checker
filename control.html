@@ -9,12 +9,23 @@
     input { width: 520px; background: #1f1f2e; color: #fff; border: 2px solid #00ff9d; }
     button { background: #00ff9d; color: #000; border: none; font-weight: bold; cursor: pointer; }
     #status { margin-top: 20px; font-size: 16px; min-height: 30px; color: #00ff9d; }
+    .api-key { width: 400px !important; font-family: monospace; }
   </style>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
   <div>
     <h2>One Piece Price Check Control</h2>
     
+    <div>
+      <strong>tcgpricelookup API Key:</strong><br>
+      <input type="text" id="apiKey" class="api-key" placeholder="tcg_xxxxxxxxxxxxxxxx" value="">
+      <button onclick="saveApiKey()">Save Key</button>
+      <small style="display:block; margin-top:5px; color:#888;">Get it free at <a href="https://tcgpricelookup.com" target="_blank">tcgpricelookup.com</a> (Trader plan for eBay Last Sold)</small>
+    </div>
+
     <div>
       <strong>Currency:</strong> 
       <select id="currency">
@@ -32,6 +43,22 @@
   </div>
 
   <script>
+    // ←←← PASTE YOUR FIREBASE CONFIG HERE (same as display.html)
+    const firebaseConfig = { /* your config object */ };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const revealRef = db.ref('currentReveal');
+
+    // Load saved API key
+    let apiKey = localStorage.getItem('tcgpricelookupKey') || '';
+    document.getElementById('apiKey').value = apiKey;
+
+    function saveApiKey() {
+      apiKey = document.getElementById('apiKey').value.trim();
+      localStorage.setItem('tcgpricelookupKey', apiKey);
+      document.getElementById("status").innerHTML = "✅ API key saved!";
+    }
+
     async function processCommand() {
       const cmd = document.getElementById("command").value.trim();
       if (!cmd.toLowerCase().startsWith(":pc")) {
@@ -39,7 +66,12 @@
         return;
       }
 
-      document.getElementById("status").innerHTML = "Fetching card data...";
+      if (!apiKey) {
+        document.getElementById("status").innerHTML = "❌ Enter your tcgpricelookup API key first!";
+        return;
+      }
+
+      document.getElementById("status").innerHTML = "Fetching card data & prices...";
 
       const parts = cmd.toLowerCase().replace(":pc", "").trim().split(/\s+/);
       let cardNum = null;
@@ -55,34 +87,58 @@
       }
 
       try {
-        const res = await fetch(`https://www.optcgapi.com/api/sets/card/${cardNum}`);
-        const data = await res.json();
-        const card = Array.isArray(data) ? data[0] : data;
+        // 1. Get basic card info + image from free OPTCGAPI
+        const optcgRes = await fetch(`https://www.optcgapi.com/api/sets/card/${cardNum}`);
+        const optcgData = await optcgRes.json();
+        const cards = Array.isArray(optcgData) ? optcgData : [optcgData];
+        let selected = cards[0];
 
-        if (!card) throw new Error("Card not found");
+        // Prefer alternate art if user typed AA/ALT/PARALLEL
+        if (hint && (hint === 'aa' || hint === 'alt' || hint === 'parallel')) {
+          const alt = cards.find(c => 
+            (c.card_name || "").toLowerCase().includes("parallel") ||
+            (c.card_name || "").toLowerCase().includes("alt")
+          );
+          if (alt) selected = alt;
+        }
 
-        const nameLower = (card.card_name || "").toLowerCase();
+        const nameLower = (selected.card_name || "").toLowerCase();
         let cardTypeKey = "default";
-        if (card.rarity === "L" || nameLower.includes("leader")) cardTypeKey = "leader";
+        if (nameLower.includes("leader")) cardTypeKey = "leader";
         else if (nameLower.includes("don") || nameLower.includes("dawn")) cardTypeKey = "don";
 
+        // 2. Get real prices from tcgpricelookup (eBay last sold preferred)
+        const priceRes = await fetch(`https://api.tcgpricelookup.com/v1/cards/search?q=${cardNum}&game=onepiece`, {
+          headers: { "X-API-Key": apiKey }
+        });
+        const priceData = await priceRes.json();
+
+        let engPrice = 0;
+        if (priceData && priceData.data && priceData.data.length > 0) {
+          const prices = priceData.data[0].prices?.raw?.near_mint || {};
+          // Prefer eBay 7-day sold average (true "Last Sold For")
+          engPrice = prices.ebay?.avg_7d || prices.tcgplayer?.market || 0;
+        }
+
         const revealData = {
-          name: card.card_name || "Unknown Card",
+          name: selected.card_name || "Unknown Card",
           number: cardNum,
           printing: hint ? "Alternate Art" : "Regular",
-          engPrice: "45.00",     // Placeholder for now
-          jpPrice: "22.00",
-          image: card.card_image || "",
+          engPrice: engPrice.toString(),
+          jpPrice: "0.00",
+          image: selected.card_image || priceData.data?.[0]?.image_url || "",
           cardTypeKey: cardTypeKey
         };
 
-        // Send to the open display
-        localStorage.setItem('revealData', JSON.stringify(revealData));
+        // SEND TO DISPLAY
+        await revealRef.set(revealData);
 
-        document.getElementById("status").innerHTML = `✅ Sent: ${card.card_name}`;
+        const priceDisplay = engPrice > 0 ? `$${engPrice.toFixed(2)}` : "—";
+        document.getElementById("status").innerHTML = `✅ Sent: ${selected.card_name} — LAST SOLD ≈ ${priceDisplay}`;
         document.getElementById("command").value = "";
 
       } catch (err) {
+        console.error(err);
         document.getElementById("status").innerHTML = `❌ Error: ${err.message}`;
       }
     }

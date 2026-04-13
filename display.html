@@ -15,15 +15,15 @@
       position: absolute;
       left: 50%;
       top: 50%;
-      transform: translate(-50%, -50%);
+      transform: translate(-50%, 120%);   /* Start below center */
       width: 400px;
+      transition: transform 1.2s cubic-bezier(0.25, 0.1, 0.25, 1);
       opacity: 0;
-      transition: opacity 0.8s ease-in, transform 1.1s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
 
     #scene.show {
+      transform: translate(-50%, -50%);
       opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
     }
 
     .card-container {
@@ -67,7 +67,7 @@
       white-space: nowrap;
       z-index: 100;
       opacity: 0;
-      transition: opacity 0.7s ease-in;
+      transition: opacity 0.8s ease-in;
     }
 
     #priceOverlay.show {
@@ -114,12 +114,17 @@
       const duration = 1600;
       const interval = setInterval(() => {
         const progress = Math.min((Date.now() - startTime) / duration, 1);
-        priceText.textContent = `ENG: $${(finalEng * progress).toFixed(2)} JP: $${(finalJp * progress).toFixed(2)}`;
+        const currentEng = (finalEng * progress).toFixed(2);
+        const currentJp = (finalJp * progress).toFixed(2);
+        priceText.textContent = `ENG: $${currentEng} JP: $${currentJp}`;
         if (progress >= 1) clearInterval(interval);
       }, 16);
     }
 
     function showCardReveal(data = {}) {
+      console.log("🎴 New reveal started:", data);
+
+      // Dynamic back
       let backClass = "default";
       const nameLower = (data.name || "").toLowerCase();
       if (data.cardTypeKey === "leader" || nameLower.includes("leader")) backClass = "leader";
@@ -128,13 +133,17 @@
       backFace.className = `back ${backClass}`;
       document.getElementById('cardImage').src = data.image || "https://picsum.photos/id/237/380/530";
 
-      // Reset
+      // Reset everything
       scene.classList.remove('show');
       frontFace.classList.remove('show');
       priceOverlay.classList.remove('show');
 
-      setTimeout(() => scene.classList.add('show'), 100);
+      // 1. Slide up from bottom showing back
+      setTimeout(() => {
+        scene.classList.add('show');
+      }, 100);
 
+      // 2. Stay on back for 5 seconds
       setTimeout(() => {
         frontFace.classList.add('show');
         priceOverlay.classList.add('show');
@@ -142,33 +151,34 @@
         const engPrice = parseFloat(data.engPrice) || 0;
         const jpPrice = parseFloat(data.jpPrice) || 0;
         animateCountUp(engPrice, jpPrice);
-      }, 1100);
+      }, 5200);   // 5.2 seconds on back
 
+      // 3. Hold everything for ~20 seconds then fade out
       setTimeout(() => {
-        scene.classList.remove('show');
-        frontFace.classList.remove('show');
-        priceOverlay.classList.remove('show');
-      }, 10500);
+        scene.style.opacity = '0';
+        setTimeout(() => {
+          scene.classList.remove('show');
+          frontFace.classList.remove('show');
+          priceOverlay.classList.remove('show');
+          scene.style.opacity = '1';
+        }, 1200);
+      }, 25200);   // Total ~25 seconds visible
     }
 
-    // Listen for updates from control panel
+    // Listen for updates from control
     window.addEventListener('storage', (e) => {
       if (e.key === 'revealData' && e.newValue) {
-        const data = JSON.parse(e.newValue);
-        showCardReveal(data);
+        showCardReveal(JSON.parse(e.newValue));
       }
     });
 
-    // Also check on load in case it's already set
     window.onload = function() {
       const saved = localStorage.getItem('revealData');
-      if (saved) {
-        showCardReveal(JSON.parse(saved));
-      }
+      if (saved) showCardReveal(JSON.parse(saved));
     };
 
     window.showCardReveal = showCardReveal;
-    console.log("✅ Display ready - centered + listens for control updates");
+    console.log("✅ Back first + 5s hold + 20s reveal + clean reset");
   </script>
 </body>
 </html>

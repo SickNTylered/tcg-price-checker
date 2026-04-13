@@ -39,8 +39,7 @@
         return;
       }
 
-      const currency = document.getElementById("currency").value;
-      document.getElementById("status").innerHTML = "Fetching...";
+      document.getElementById("status").innerHTML = "Fetching card data...";
 
       const parts = cmd.toLowerCase().replace(":pc", "").trim().split(/\s+/);
       let cardNum = null;
@@ -71,16 +70,16 @@
           name: card.card_name || "Unknown Card",
           number: cardNum,
           printing: hint ? "Alternate Art" : "Regular",
-          engPrice: "45.00",        // Placeholder for now
+          engPrice: "45.00",     // Placeholder for now
           jpPrice: "22.00",
           image: card.card_image || "",
           cardTypeKey: cardTypeKey
         };
 
-        // Send to display using localStorage
+        // Send to the open display
         localStorage.setItem('revealData', JSON.stringify(revealData));
 
-        document.getElementById("status").innerHTML = `✅ Sent to display: ${card.card_name}`;
+        document.getElementById("status").innerHTML = `✅ Sent: ${card.card_name}`;
         document.getElementById("command").value = "";
 
       } catch (err) {
@@ -94,3 +93,4 @@
   </script>
 </body>
 </html>
+ 

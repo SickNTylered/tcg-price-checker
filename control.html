@@ -5,7 +5,7 @@
   <title>Price Check Control</title>
   <style>
     body { font-family: Arial, sans-serif; background: #0f0f19; color: #fff; padding: 30px; text-align: center; }
-    input, button { padding: 14px; font-size: 18px; margin: 10px; border-radius: 8px; }
+    input, button, select { padding: 14px; font-size: 18px; margin: 10px; border-radius: 8px; }
     input { width: 520px; background: #1f1f2e; color: #fff; border: 2px solid #00ff9d; }
     button { background: #00ff9d; color: #000; border: none; font-weight: bold; cursor: pointer; }
     #status { margin-top: 20px; font-size: 16px; min-height: 30px; color: #00ff9d; }
@@ -14,7 +14,16 @@
 <body>
   <div>
     <h2>One Piece Price Check Control</h2>
-    <p>Paste command from chat:</p>
+    
+    <div>
+      <strong>Currency:</strong> 
+      <select id="currency">
+        <option value="AUD" selected>AUD</option>
+        <option value="USD">USD</option>
+        <option value="EUR">EUR</option>
+      </select>
+    </div>
+
     <input type="text" id="command" placeholder=":pc OP05-123 AA" autofocus>
     <br>
     <button onclick="processCommand()">🔥 FETCH & REVEAL ON STREAM</button>
@@ -30,7 +39,8 @@
         return;
       }
 
-      document.getElementById("status").innerHTML = "Fetching...";
+      const currency = document.getElementById("currency").value;
+      document.getElementById("status").innerHTML = "Fetching card...";
 
       const parts = cmd.toLowerCase().replace(":pc", "").trim().split(/\s+/);
       let cardNum = null;
@@ -46,7 +56,7 @@
       }
 
       try {
-        // Get card art + info
+        // Get card art + info from OPTCG API
         const res = await fetch(`https://www.optcgapi.com/api/sets/card/${cardNum}`);
         const data = await res.json();
         const card = Array.isArray(data) ? data[0] : data;
@@ -58,17 +68,18 @@
         if (card.rarity === "L" || nameLower.includes("leader")) cardTypeKey = "leader";
         else if (nameLower.includes("don") || nameLower.includes("dawn")) cardTypeKey = "don";
 
-        const revealUrl = `http://127.0.0.1:5500/display.html?name=${encodeURIComponent(card.card_name)}` +
+        // Build URL for display
+        const displayUrl = `display.html?name=${encodeURIComponent(card.card_name)}` +
           `&number=${encodeURIComponent(cardNum)}` +
           `&printing=${encodeURIComponent(hint ? "Alternate Art" : "Regular")}` +
-          `&engPrice=48.50` +   // TODO: Replace with real price later
-          `&jpPrice=25.00` +
+          `&engPrice=45.00` +     // Placeholder - we'll improve pricing soon
+          `&jpPrice=22.00` +
           `&image=${encodeURIComponent(card.card_image || "")}` +
           `&cardTypeKey=${cardTypeKey}`;
 
-        window.open(revealUrl, '_blank');
+        window.open(displayUrl, '_blank');
 
-        document.getElementById("status").innerHTML = `✅ Opened reveal for ${card.card_name}`;
+        document.getElementById("status").innerHTML = `✅ Revealed ${card.card_name} in ${currency}`;
         document.getElementById("command").value = "";
 
       } catch (err) {

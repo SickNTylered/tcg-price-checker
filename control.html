@@ -5,32 +5,26 @@
   <title>One Piece Price Check Control</title>
   <style>
     body { font-family: Arial, sans-serif; background: #0f0f19; color: #fff; padding: 30px; text-align: center; }
-    .container { max-width: 620px; margin: 0 auto; }
-    h2 { color: #00ff9d; }
     input, button, select { padding: 14px; font-size: 18px; margin: 10px; border-radius: 8px; }
     input { width: 520px; background: #1f1f2e; color: #fff; border: 2px solid #00ff9d; }
     button { background: #00ff9d; color: #000; border: none; font-weight: bold; cursor: pointer; }
-    select { background: #1f1f2e; color: #fff; border: 2px solid #00ff9d; width: 200px; }
-    #status { margin-top: 20px; font-size: 16px; min-height: 30px; }
+    select { background: #1f1f2e; color: #fff; border: 2px solid #00ff9d; }
+    #status { margin-top: 20px; font-size: 16px; min-height: 30px; color: #00ff9d; }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div>
     <h2>One Piece Price Check Control</h2>
     
-    <div style="margin-bottom:20px;">
+    <div>
       <strong>Currency:</strong> 
       <select id="currency">
-        <option value="AUD" selected>AUD - Australian Dollar</option>
-        <option value="USD">USD - US Dollar</option>
-        <option value="EUR">EUR - Euro</option>
-        <option value="GBP">GBP - British Pound</option>
-        <option value="JPY">JPY - Japanese Yen</option>
+        <option value="AUD" selected>AUD</option>
+        <option value="USD">USD</option>
       </select>
     </div>
 
-    <p>Paste chat command</p>
-    <input type="text" id="command" placeholder=":pc OP05-001 AA" autofocus>
+    <input type="text" id="command" placeholder=":pc OP05-123 AA" autofocus>
     <br>
     <button onclick="processCommand()">🔥 FETCH & REVEAL ON STREAM</button>
 
@@ -40,111 +34,81 @@
   <script>
     const channel = new BroadcastChannel('card_reveal_channel');
 
-    async function getExchangeRate(toCurrency) {
-      if (toCurrency === "USD") return 1;
-      try {
-        const res = await fetch(`https://api.exchangerate-api.com/v4/latest/USD`);
-        const data = await res.json();
-        return data.rates[toCurrency] || 1;
-      } catch (e) {
-        console.warn("Currency conversion failed");
-        return 1;
-      }
-    }
-
     async function processCommand() {
-              // Build URL with all data as query parameters
-        const baseUrl = "https://sickntylered.github.io/tcg-price-checker/display.html";   // ← CHANGE THIS TO YOUR ACTUAL DISPLAY URL
-
-        const revealUrl = `${baseUrl}?` +
-          `name=${encodeURIComponent(selected.card_name)}&` +
-          `number=${encodeURIComponent(selected.card_set_id)}&` +
-          `printing=${encodeURIComponent(isAlt ? "Alternate Art" : "Regular")}&` +
-          `engPrice=${convertedEng}&` +
-          `jpPrice=${jpPrice}&` +
-          `image=${encodeURIComponent(selected.card_image || "")}&` +
-          `currency=${selectedCurrency}&` +
-          `cardTypeKey=${cardTypeKey}`;
-
-        console.log("🔗 Opening reveal URL:", revealUrl);
-
-        // Open or refresh the display page with new data
-        window.open(revealUrl, '_blank');
-
-        document.getElementById("status").innerHTML = `✅ Revealed in ${selectedCurrency}`;
-        document.getElementById("command").value = "";
+      const cmd = document.getElementById("command").value.trim();
       if (!cmd.toLowerCase().startsWith(":pc")) {
-        document.getElementById("status").innerHTML = "❌ Must start with :pc";
+        document.getElementById("status").innerHTML = "❌ Command must start with :pc";
         return;
       }
 
-      const selectedCurrency = document.getElementById("currency").value;
-      document.getElementById("status").innerHTML = `Fetching + converting to ${selectedCurrency}...`;
+      const currency = document.getElementById("currency").value;
+      document.getElementById("status").innerHTML = "Fetching card data...";
 
       const parts = cmd.toLowerCase().replace(":pc", "").trim().split(/\s+/);
       let cardNum = null;
-      let isAlt = false;
+      let hint = null;
       for (let p of parts) {
         if (/^[a-z0-9]+-\d+$/.test(p)) cardNum = p.toUpperCase();
-        if (['aa','alt','parallel','p1','sp'].includes(p)) isAlt = true;
+        if (['aa','alt','parallel','sp','manga'].includes(p)) hint = p;
       }
+
       if (!cardNum) {
-        document.getElementById("status").innerHTML = "❌ No card number";
+        document.getElementById("status").innerHTML = "❌ No card number found";
         return;
       }
 
       try {
-        const res = await fetch(`https://optcgapi.com/api/sets/card/${cardNum}/`);
-        if (!res.ok) throw new Error("Card not found");
-        const cards = await res.json();
+        // 1. Get card art + metadata from OPTCG API (better images)
+        let artRes = await fetch(`https://www.optcgapi.com/api/sets/card/${cardNum}`);
+        let artData = await artRes.json();
+        let cardInfo = Array.isArray(artData) ? artData[0] : artData;
 
-        let selected = cards.find(c => 
-          (isAlt && c.card_name.toLowerCase().includes("alternate")) || 
-          (!isAlt && !c.card_name.toLowerCase().includes("alternate"))
-        ) || cards[0];
-
-        const nameLower = selected.card_name.toLowerCase();
-        let cardTypeKey = "default";
-        if (selected.rarity === "L" || nameLower.includes("leader")) cardTypeKey = "leader";
-        else if (nameLower.includes("don") || nameLower.includes("dawn")) cardTypeKey = "don";
-
-        const rate = await getExchangeRate(selectedCurrency);
-        const usdEng = selected.market_price || 0;
-        const convertedEng = (usdEng * rate).toFixed(2);
-
-        // JP price (if available in OPTCG or fallback)
-        let jpPrice = "N/A";
-        if (selected.jp_market_price) {
-          jpPrice = (selected.jp_market_price * rate).toFixed(2);
+        // 2. Get accurate prices from JustTCG (you can swap in your key if needed)
+        // For now using public fallback if JustTCG requires key
+        let priceData = { price: "N/A" };
+        try {
+          const priceRes = await fetch(`https://api.justtcg.com/v1/cards?game=one-piece-card-game&q=${cardNum}`);
+          const pJson = await priceRes.json();
+          priceData = pJson.data?.[0] || {};
+        } catch (e) {
+          console.warn("JustTCG failed, using fallback");
         }
 
-        const dataToSend = {
-          name: selected.card_name,
-          number: selected.card_set_id,
-          printing: isAlt ? "Alternate Art" : "Regular",
-          engPrice: convertedEng,
-          jpPrice: jpPrice,
+        const nameLower = (cardInfo.card_name || "").toLowerCase();
+        let cardTypeKey = "default";
+        if (cardInfo.rarity === "L" || nameLower.includes("leader")) cardTypeKey = "leader";
+        else if (nameLower.includes("don") || nameLower.includes("dawn")) cardTypeKey = "don";
+
+        const revealData = {
+          name: cardInfo.card_name || "Unknown Card",
+          number: cardNum,
+          printing: hint ? "Alternate Art" : "Regular",
+          engPrice: priceData.price || cardInfo.market_price || "N/A",
+          jpPrice: "N/A",   // Add JP logic later if needed
           lang: "ENG",
-          image: selected.card_image,
+          image: cardInfo.card_image || "https://picsum.photos/id/237/240/340",
           cardTypeKey: cardTypeKey,
-          currency: selectedCurrency
+          currency: currency
         };
 
-        console.log("📤 Sending to display:", dataToSend);
-        channel.postMessage({ type: 'reveal', data: dataToSend });
+        // Send to display via BroadcastChannel (best method)
+        channel.postMessage({ type: 'reveal', data: revealData });
 
-        document.getElementById("status").innerHTML = `✅ Revealed in ${selectedCurrency}`;
+        document.getElementById("status").innerHTML = `✅ Revealed: ${revealData.name}`;
         document.getElementById("command").value = "";
 
       } catch (err) {
-        document.getElementById("status").innerHTML = `❌ ${err.message}`;
         console.error(err);
+        document.getElementById("status").innerHTML = `❌ Error: ${err.message}`;
       }
     }
 
+    // Listen for Enter key
     document.getElementById("command").addEventListener("keypress", e => {
       if (e.key === "Enter") processCommand();
     });
+
+    console.log("Control ready - use BroadcastChannel to talk to display");
   </script>
 </body>
 </html>

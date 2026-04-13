@@ -18,7 +18,7 @@
       bottom: -680px;
       width: 380px;
       transform: translateX(-50%);
-      transition: bottom 0.95s cubic-bezier(0.25, 0.1, 0.25, 1);
+      transition: bottom 1s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
 
     #scene.show {
@@ -30,7 +30,7 @@
       height: 530px;
       position: relative;
       transform-style: preserve-3d;
-      transition: transform 1.65s cubic-bezier(0.23, 1, 0.32, 1);
+      transition: transform 1.8s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
 
     .card.show-front {
@@ -47,19 +47,18 @@
       box-shadow: 0 30px 60px rgba(0,0,0,0.85);
     }
 
-    /* ==================== CARD BACKS - USE RAW GITHUB LINKS ==================== */
+    /* Card Backs */
     .back {
       background-size: cover;
       background-position: center;
-      background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Back.png'); 
+      background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Back.png');
     }
     .back.leader {
-      background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Leader.png'); 
+      background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Leader.png');
     }
     .back.don {
-      background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Don.png'); 
+      background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Don.png');
     }
-    /* ========================================================================= */
 
     .front {
       background: #0a0a14;
@@ -100,20 +99,20 @@
       background: radial-gradient(circle, rgba(255,215,0,0.75) 15%, transparent 70%);
       opacity: 0;
       pointer-events: none;
-      animation: sparkleAnim 2s ease-out forwards;
+      animation: sparkleAnim 2.2s ease-out forwards;
     }
 
     @keyframes sparkleAnim {
       0%   { opacity: 0; transform: scale(0.6); }
-      30%  { opacity: 1; }
-      100% { opacity: 0; transform: scale(1.35); }
+      35%  { opacity: 1; }
+      100% { opacity: 0; transform: scale(1.4); }
     }
   </style>
 </head>
 <body>
   <div id="scene">
     <div id="card" class="card">
-      <!-- Back (starts visible) -->
+      <!-- Back - starts visible -->
       <div id="backFace" class="face back"></div>
       
       <!-- Front -->
@@ -137,7 +136,7 @@
     function showCardReveal(data = {}) {
       console.log("🎴 Reveal triggered:", data);
 
-      // Dynamic back
+      // Set dynamic back
       let backClass = "default";
       const nameLower = (data.name || "").toLowerCase();
       if (data.cardTypeKey === "leader" || nameLower.includes("leader")) backClass = "leader";
@@ -150,33 +149,39 @@
       img.src = data.image || "https://picsum.photos/id/237/380/390";
       img.onerror = () => img.src = "https://picsum.photos/id/237/380/390";
 
-      // Text
+      // Set text
       document.getElementById('name').textContent = `${data.name || "Unknown Card"} (${data.number || "OPXX-XXX"})`;
       document.getElementById('details').textContent = `${data.printing || "Regular"} • ${data.lang || "ENG"}`;
       document.getElementById('price').textContent = `ENG: $${data.engPrice || "N/A"} • JP: $${data.jpPrice || "N/A"}`;
 
-      // Animation
-      scene.classList.add('show');
+      // Reset animation
+      scene.classList.remove('show');
       card.classList.remove('show-front');
 
+      // Step 1: Rise from bottom with back facing
+      setTimeout(() => {
+        scene.classList.add('show');
+      }, 50);
+
+      // Step 2: Flip to front after rising
       setTimeout(() => {
         card.classList.add('show-front');
-        document.querySelector('.sparkles').style.animation = 'sparkleAnim 2s ease-out forwards';
-      }, 650);
+        document.querySelector('.sparkles').style.animation = 'sparkleAnim 2.2s ease-out forwards';
+      }, 900);
 
-      // Fall back down after ~10 seconds
+      // Step 3: Drop back down after ~10 seconds
       setTimeout(() => {
         scene.style.bottom = '-680px';
         setTimeout(() => {
           scene.classList.remove('show');
           card.classList.remove('show-front');
-        }, 1100);
-      }, 10200);
+        }, 1200);
+      }, 10500);
     }
 
     window.showCardReveal = showCardReveal;
 
-    console.log("✅ Display ready! Backs should now load from your GitHub repo.");
+    console.log("✅ Fixed display - now starts with back, rises cleanly, flips once, then drops down");
   </script>
 </body>
 </html>

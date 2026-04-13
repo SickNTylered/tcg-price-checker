@@ -2,28 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>One Piece Price Check Control</title>
+  <title>Price Check Control</title>
   <style>
     body { font-family: Arial, sans-serif; background: #0f0f19; color: #fff; padding: 30px; text-align: center; }
-    input, button, select { padding: 14px; font-size: 18px; margin: 10px; border-radius: 8px; }
+    .container { max-width: 620px; margin: 0 auto; }
+    h2 { color: #00ff9d; }
+    input, button { padding: 14px; font-size: 18px; margin: 10px; border-radius: 8px; }
     input { width: 520px; background: #1f1f2e; color: #fff; border: 2px solid #00ff9d; }
     button { background: #00ff9d; color: #000; border: none; font-weight: bold; cursor: pointer; }
-    select { background: #1f1f2e; color: #fff; border: 2px solid #00ff9d; }
     #status { margin-top: 20px; font-size: 16px; min-height: 30px; color: #00ff9d; }
   </style>
 </head>
 <body>
-  <div>
+  <div class="container">
     <h2>One Piece Price Check Control</h2>
-    
-    <div>
-      <strong>Currency:</strong> 
-      <select id="currency">
-        <option value="AUD" selected>AUD</option>
-        <option value="USD">USD</option>
-      </select>
-    </div>
-
+    <p>Paste command from chat:</p>
     <input type="text" id="command" placeholder=":pc OP05-123 AA" autofocus>
     <br>
     <button onclick="processCommand()">🔥 FETCH & REVEAL ON STREAM</button>
@@ -37,11 +30,10 @@
     async function processCommand() {
       const cmd = document.getElementById("command").value.trim();
       if (!cmd.toLowerCase().startsWith(":pc")) {
-        document.getElementById("status").innerHTML = "❌ Command must start with :pc";
+        document.getElementById("status").innerHTML = "❌ Must start with :pc";
         return;
       }
 
-      const currency = document.getElementById("currency").value;
       document.getElementById("status").innerHTML = "Fetching card data...";
 
       const parts = cmd.toLowerCase().replace(":pc", "").trim().split(/\s+/);
@@ -58,22 +50,28 @@
       }
 
       try {
-        // 1. Get card art + metadata from OPTCG API (better images)
-        let artRes = await fetch(`https://www.optcgapi.com/api/sets/card/${cardNum}`);
-        let artData = await artRes.json();
-        let cardInfo = Array.isArray(artData) ? artData[0] : artData;
+        // 1. Get card art + metadata from OPTCG API
+        const artRes = await fetch(`https://www.optcgapi.com/api/sets/card/${cardNum}`);
+        const artData = await artRes.json();
+        const cardInfo = Array.isArray(artData) ? artData[0] : artData;
 
-        // 2. Get accurate prices from JustTCG (you can swap in your key if needed)
-        // For now using public fallback if JustTCG requires key
-        let priceData = { price: "N/A" };
+        if (!cardInfo) throw new Error("Card not found");
+
+        // 2. Get accurate price from TCG Price Lookup (or fallback)
+        let engPrice = "N/A";
+        let jpPrice = "N/A";
+
         try {
-          const priceRes = await fetch(`https://api.justtcg.com/v1/cards?game=one-piece-card-game&q=${cardNum}`);
-          const pJson = await priceRes.json();
-          priceData = pJson.data?.[0] || {};
+          const priceRes = await fetch(`https://api.tcgpricelookup.com/v1/cards?game=one-piece&number=${cardNum}`);
+          const priceJson = await priceRes.json();
+          const priceInfo = priceJson.data?.[0] || {};
+          engPrice = priceInfo.nm_price || priceInfo.market_price || "N/A";
+          jpPrice = priceInfo.jp_nm_price || "N/A";
         } catch (e) {
-          console.warn("JustTCG failed, using fallback");
+          console.warn("Price lookup failed, using placeholder");
         }
 
+        // Detect card type for back
         const nameLower = (cardInfo.card_name || "").toLowerCase();
         let cardTypeKey = "default";
         if (cardInfo.rarity === "L" || nameLower.includes("leader")) cardTypeKey = "leader";
@@ -83,15 +81,13 @@
           name: cardInfo.card_name || "Unknown Card",
           number: cardNum,
           printing: hint ? "Alternate Art" : "Regular",
-          engPrice: priceData.price || cardInfo.market_price || "N/A",
-          jpPrice: "N/A",   // Add JP logic later if needed
-          lang: "ENG",
-          image: cardInfo.card_image || "https://picsum.photos/id/237/240/340",
-          cardTypeKey: cardTypeKey,
-          currency: currency
+          engPrice: engPrice,
+          jpPrice: jpPrice,
+          image: cardInfo.card_image || "https://picsum.photos/id/237/380/530",
+          cardTypeKey: cardTypeKey
         };
 
-        // Send to display via BroadcastChannel (best method)
+        // Send to display
         channel.postMessage({ type: 'reveal', data: revealData });
 
         document.getElementById("status").innerHTML = `✅ Revealed: ${revealData.name}`;
@@ -103,12 +99,11 @@
       }
     }
 
-    // Listen for Enter key
     document.getElementById("command").addEventListener("keypress", e => {
       if (e.key === "Enter") processCommand();
     });
 
-    console.log("Control ready - use BroadcastChannel to talk to display");
+    console.log("Control panel ready - uses OPTCG for art + TCG Price Lookup for prices");
   </script>
 </body>
 </html>

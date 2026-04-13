@@ -19,7 +19,7 @@
       transform: translateX(-50%);
       transition: bottom 1.1s cubic-bezier(0.25, 0.1, 0.25, 1);
       opacity: 0;
-      z-index: 10;
+      z-index: 5;
     }
 
     #scene.show {
@@ -36,21 +36,30 @@
       box-shadow: 0 30px 60px rgba(0,0,0,0.85);
     }
 
-    .back, .front {
+    .back {
       position: absolute;
       width: 100%;
       height: 100%;
-      border-radius: 22px;
-      overflow: hidden;
-    }
-
-    .back {
       background-size: cover;
       background-position: center;
+      z-index: 10;
     }
     .back.default { background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Back.png'); }
     .back.leader { background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Leader.png'); }
     .back.don    { background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Don.png'); }
+
+    .front {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      z-index: 15;
+      opacity: 0;
+      transition: opacity 0.9s ease-in;
+    }
+
+    .front.show {
+      opacity: 1;
+    }
 
     .front img {
       width: 100%;
@@ -58,7 +67,7 @@
       object-fit: contain;
     }
 
-    /* Floating Green Text - No box, high z-index */
+    /* Floating Green Text - Forced highest layer */
     .price-overlay {
       position: absolute;
       top: -95px;
@@ -67,15 +76,15 @@
       color: #00ff88;
       text-align: center;
       text-shadow: 
-        0 0 8px #00ff88,
-        0 0 16px #00ff88,
-        0 0 25px #00ff88;
+        0 0 10px #00ff88,
+        0 0 20px #00ff88,
+        0 0 35px #00ff88;
       font-size: 21px;
-      line-height: 1.25;
+      line-height: 1.3;
       white-space: nowrap;
-      z-index: 30;           /* Forced high */
+      z-index: 50;           /* Highest layer */
       opacity: 0;
-      transition: opacity 0.6s ease-in;
+      transition: opacity 0.7s ease-in;
       pointer-events: none;
     }
 
@@ -101,12 +110,12 @@
       <!-- Back -->
       <div id="backFace" class="back default"></div>
       
-      <!-- Front - Pure card art -->
+      <!-- Front - Full card art -->
       <div id="frontFace" class="front">
         <img id="cardImage" src="" alt="Card Art">
       </div>
 
-      <!-- Floating Green Text Above Card -->
+      <!-- Floating Green Text (no box) -->
       <div id="priceOverlay" class="price-overlay">
         <div class="last-sold">LAST SOLD FOR</div>
         <div id="priceText" class="prices">ENG: $0.00 • JP: $0.00</div>
@@ -129,7 +138,6 @@
         const currentEng = (finalEng * progress).toFixed(2);
         const currentJp = (finalJp * progress).toFixed(2);
         priceText.textContent = `ENG: $${currentEng} • JP: $${currentJp}`;
-
         if (progress >= 1) clearInterval(interval);
       }, 16);
     }
@@ -153,7 +161,7 @@
       frontFace.classList.remove('show');
       priceOverlay.classList.remove('show');
 
-      // 1. Rise from bottom showing back
+      // 1. Rise from bottom with back visible
       setTimeout(() => {
         scene.classList.add('show');
       }, 100);
@@ -166,7 +174,7 @@
         const engPrice = parseFloat(data.engPrice) || 0;
         const jpPrice = parseFloat(data.jpPrice) || 0;
         animateCountUp(engPrice, jpPrice);
-      }, 1100);
+      }, 1150);
 
       // 3. Drop back down
       setTimeout(() => {
@@ -181,7 +189,7 @@
 
     window.showCardReveal = showCardReveal;
 
-    console.log("✅ Text should now appear above the card in bright green");
+    console.log("✅ Final version - back first, full art, floating green text");
   </script>
 </body>
 </html>

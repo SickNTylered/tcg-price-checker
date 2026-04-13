@@ -1,24 +1,113 @@
-  <script>
-    const scene = document.getElementById('scene');
-    const backFace = document.getElementById('backFace');
-    const frontFace = document.getElementById('frontFace');
-    const priceOverlay = document.getElementById('priceOverlay');
-    const priceText = document.getElementById('priceText');
-
-    function animateCountUp(finalEng, finalJp) {
-      let startTime = Date.now();
-      const duration = 1600;
-      const interval = setInterval(() => {
-        const progress = Math.min((Date.now() - startTime) / duration, 1);
-        const currentEng = (finalEng * progress).toFixed(2);
-        const currentJp = (finalJp * progress).toFixed(2);
-        priceText.textContent = `ENG: $${currentEng} JP: $${currentJp}`;
-        if (progress >= 1) clearInterval(interval);
-      }, 16);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>One Piece Price Reveal</title>
+  <style>
+    body { 
+      margin: 0; 
+      background: transparent; 
+      overflow: hidden; 
+      font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
     }
 
+    #scene {
+      position: absolute;
+      left: 50%;
+      bottom: -720px;
+      width: 400px;
+      transform: translateX(-50%);
+      transition: bottom 1.1s cubic-bezier(0.25, 0.1, 0.25, 1);
+      opacity: 0;
+    }
+
+    #scene.show {
+      bottom: 140px;
+      opacity: 1;
+    }
+
+    .card-container {
+      width: 100%;
+      height: 530px;
+      position: relative;
+      border-radius: 22px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+    }
+
+    .back, .front {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 22px;
+      overflow: hidden;
+    }
+
+    .back {
+      background-size: cover;
+      background-position: center;
+    }
+    .back.default { background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Back.png'); }
+    .back.leader { background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Leader.png'); }
+    .back.don    { background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Don.png'); }
+
+    .front img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    #priceOverlay {
+      position: absolute;
+      top: 555px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #00cc66;
+      text-align: center;
+      white-space: nowrap;
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.7s ease-in;
+    }
+
+    #priceOverlay.show {
+      opacity: 1;
+    }
+
+    .last-sold {
+      font-size: 50px;
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: white;
+    }
+
+    .prices {
+      font-size: 60px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div id="scene">
+    <div class="card-container">
+      <div id="backFace" class="back default"></div>
+      <div id="frontFace" class="front">
+        <img id="cardImage" src="" alt="Card Art">
+      </div>
+    </div>
+
+    <div id="priceOverlay">
+      <div class="last-sold">LAST SOLD FOR</div>
+      <div id="priceText" class="prices">ENG: $0.00 JP: $0.00</div>
+    </div>
+  </div>
+
+  <script>
     function showCardReveal(data = {}) {
-      console.log("🎴 Reveal triggered:", data);
+      const backFace = document.getElementById('backFace');
+      const frontFace = document.getElementById('frontFace');
+      const priceOverlay = document.getElementById('priceOverlay');
+      const priceText = document.getElementById('priceText');
 
       let backClass = "default";
       const nameLower = (data.name || "").toLowerCase();
@@ -26,15 +115,14 @@
       else if (data.cardTypeKey === "don" || nameLower.includes("don") || nameLower.includes("dawn")) backClass = "don";
 
       backFace.className = `back ${backClass}`;
-
       document.getElementById('cardImage').src = data.image || "https://picsum.photos/id/237/380/530";
 
       // Reset
-      scene.classList.remove('show');
+      document.getElementById('scene').classList.remove('show');
       frontFace.classList.remove('show');
       priceOverlay.classList.remove('show');
 
-      setTimeout(() => scene.classList.add('show'), 100);
+      setTimeout(() => document.getElementById('scene').classList.add('show'), 100);
 
       setTimeout(() => {
         frontFace.classList.add('show');
@@ -42,20 +130,29 @@
 
         const engPrice = parseFloat(data.engPrice) || 0;
         const jpPrice = parseFloat(data.jpPrice) || 0;
-        animateCountUp(engPrice, jpPrice);
+
+        let startTime = Date.now();
+        const duration = 1600;
+        const interval = setInterval(() => {
+          const progress = Math.min((Date.now() - startTime) / duration, 1);
+          const currentEng = (engPrice * progress).toFixed(2);
+          const currentJp = (jpPrice * progress).toFixed(2);
+          priceText.textContent = `ENG: $${currentEng} JP: $${currentJp}`;
+          if (progress >= 1) clearInterval(interval);
+        }, 16);
       }, 1100);
 
       setTimeout(() => {
-        scene.style.bottom = '-720px';
+        document.getElementById('scene').style.bottom = '-720px';
         setTimeout(() => {
-          scene.classList.remove('show');
+          document.getElementById('scene').classList.remove('show');
           frontFace.classList.remove('show');
           priceOverlay.classList.remove('show');
         }, 1300);
       }, 10500);
     }
 
-    // NEW: Support for URL parameters (from control panel)
+    // Support URL parameters from control panel
     window.onload = function() {
       const params = new URLSearchParams(window.location.search);
       if (params.has('name')) {
@@ -73,8 +170,6 @@
     };
 
     window.showCardReveal = showCardReveal;
-
-    console.log("✅ Display ready - supports URL parameters from control");
   </script>
 </body>
 </html>

@@ -56,62 +56,50 @@
   </div>
 
   <script>
-    const scene = document.getElementById('scene');
-    const backFace = document.getElementById('backFace');
-    const frontFace = document.getElementById('frontFace');
-    const priceOverlay = document.getElementById('priceOverlay');
-    const priceText = document.getElementById('priceText');
-
-    function animateCountUp(finalEng, finalJp) {
-      let startTime = Date.now();
-      const duration = 1600;
-      const interval = setInterval(() => {
-        const progress = Math.min((Date.now() - startTime) / duration, 1);
-        priceText.textContent = `ENG: $${(finalEng * progress).toFixed(2)} JP: $${(finalJp * progress).toFixed(2)}`;
-        if (progress >= 1) clearInterval(interval);
-      }, 16);
-    }
-
     function showCardReveal(data) {
       let backClass = "default";
       const nameLower = (data.name || "").toLowerCase();
       if (data.cardTypeKey === "leader" || nameLower.includes("leader")) backClass = "leader";
       else if (data.cardTypeKey === "don" || nameLower.includes("don") || nameLower.includes("dawn")) backClass = "don";
 
-      backFace.className = `back ${backClass}`;
+      document.getElementById('backFace').className = `back ${backClass}`;
       document.getElementById('cardImage').src = data.image || "https://picsum.photos/id/237/380/530";
 
+      const scene = document.getElementById('scene');
+      const front = document.getElementById('frontFace');
+      const overlay = document.getElementById('priceOverlay');
+
       scene.style.top = '120%';
-      frontFace.classList.remove('show');
-      priceOverlay.classList.remove('show');
+      front.classList.remove('show');
+      overlay.classList.remove('show');
 
       setTimeout(() => scene.style.top = '50%', 4000);
 
       setTimeout(() => {
-        frontFace.classList.add('show');
-        priceOverlay.classList.add('show');
-        const eng = parseFloat(data.engPrice) || 0;
-        const jp = parseFloat(data.jpPrice) || 0;
-        animateCountUp(eng, jp);
+        front.classList.add('show');
+        overlay.classList.add('show');
       }, 4000 + 1800 + 7000);
 
       setTimeout(() => {
         scene.style.top = '120%';
-        setTimeout(() => {
-          frontFace.classList.remove('show');
-          priceOverlay.classList.remove('show');
-        }, 2000);
       }, 4000 + 1800 + 7000 + 14000);
     }
 
-    // Listen for updates from control
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'revealData' && e.newValue) {
-        showCardReveal(JSON.parse(e.newValue));
+    // Support URL parameters from control
+    window.onload = function() {
+      const p = new URLSearchParams(window.location.search);
+      if (p.has('name')) {
+        showCardReveal({
+          name: p.get('name'),
+          number: p.get('number'),
+          printing: p.get('printing'),
+          engPrice: p.get('engPrice'),
+          jpPrice: p.get('jpPrice'),
+          image: p.get('image'),
+          cardTypeKey: p.get('cardTypeKey') || 'default'
+        });
       }
-    });
-
-    window.showCardReveal = showCardReveal;
+    };
   </script>
 </body>
 </html>

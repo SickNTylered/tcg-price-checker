@@ -57,24 +57,24 @@
       object-fit: contain;
     }
 
-    /* Floating Green Price Box - above the card */
+    /* Floating Green Text - NO box, fully transparent background */
     .price-overlay {
       position: absolute;
-      top: -75px;                    /* Floats above the card */
+      top: -85px;                    /* Floats well above the card */
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0, 204, 102, 0.95);
-      color: #ffffff;
-      padding: 12px 30px;
-      border-radius: 12px;
+      color: #00ff88;
       text-align: center;
-      box-shadow: 0 0 25px #00ff88, 0 0 45px #00ff88;
-      font-size: 19px;
-      line-height: 1.3;
+      text-shadow: 
+        0 0 10px #00ff88,
+        0 0 20px #00ff88,
+        0 0 30px #00ff88;
+      font-size: 21px;
+      line-height: 1.25;
       white-space: nowrap;
       z-index: 20;
       opacity: 0;
-      transition: opacity 0.6s ease-in;
+      transition: opacity 0.7s ease-in;
     }
 
     .price-overlay.show {
@@ -82,14 +82,13 @@
     }
 
     .last-sold {
-      font-size: 17px;
+      font-size: 18px;
       font-weight: bold;
-      margin-bottom: 4px;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+      margin-bottom: 6px;
     }
 
     .prices {
-      font-size: 24px;
+      font-size: 26px;
       font-weight: bold;
     }
 
@@ -115,13 +114,13 @@
       <!-- Back -->
       <div id="backFace" class="back default"></div>
       
-      <!-- Front - Full clean card art -->
+      <!-- Front - Pure card art -->
       <div id="frontFace" class="front">
         <img id="cardImage" src="" alt="Card Art">
         <div class="sparkles"></div>
       </div>
 
-      <!-- Floating Green Overlay ABOVE the card -->
+      <!-- Floating Green Text (no box) -->
       <div id="priceOverlay" class="price-overlay">
         <div class="last-sold">LAST SOLD FOR</div>
         <div id="priceText" class="prices">ENG: $0.00 • JP: $0.00</div>
@@ -160,7 +159,7 @@
 
       backFace.className = `back ${backClass}`;
 
-      // Full card art
+      // Full clean card art
       document.getElementById('cardImage').src = data.image || "https://picsum.photos/id/237/380/530";
 
       // Reset
@@ -168,23 +167,23 @@
       frontFace.classList.remove('show');
       priceOverlay.classList.remove('show');
 
-      // 1. Rise from bottom with back
+      // Rise from bottom with back
       setTimeout(() => {
         scene.classList.add('show');
       }, 100);
 
-      // 2. Reveal front + floating price box
+      // Reveal front + floating green text
       setTimeout(() => {
         frontFace.classList.add('show');
         priceOverlay.classList.add('show');
 
-        // Count-up animation
+        // Count-up effect
         const engPrice = parseFloat(data.engPrice) || 0;
         const jpPrice = parseFloat(data.jpPrice) || 0;
         animateCountUp(engPrice, jpPrice);
       }, 1100);
 
-      // 3. Drop back down after ~10 seconds
+      // Drop back down after ~10 seconds
       setTimeout(() => {
         scene.style.bottom = '-720px';
         setTimeout(() => {
@@ -197,7 +196,7 @@
 
     window.showCardReveal = showCardReveal;
 
-    console.log("✅ Floating green overlay + full card art version loaded");
+    console.log("✅ No box version - floating green text above full card art");
   </script>
 </body>
 </html>

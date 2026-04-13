@@ -39,7 +39,7 @@
         return;
       }
 
-      document.getElementById("status").innerHTML = "Fetching card data...";
+      document.getElementById("status").innerHTML = "Sending to stream...";
 
       const parts = cmd.toLowerCase().replace(":pc", "").trim().split(/\s+/);
       let cardNum = null;
@@ -59,24 +59,22 @@
         const data = await res.json();
         const card = Array.isArray(data) ? data[0] : data;
 
-        if (!card) throw new Error("Card not found");
-
         const nameLower = (card.card_name || "").toLowerCase();
         let cardTypeKey = "default";
         if (card.rarity === "L" || nameLower.includes("leader")) cardTypeKey = "leader";
         else if (nameLower.includes("don") || nameLower.includes("dawn")) cardTypeKey = "don";
 
         const revealData = {
+          timestamp: Date.now(),
           name: card.card_name || "Unknown Card",
           number: cardNum,
           printing: hint ? "Alternate Art" : "Regular",
-          engPrice: "45.00",     // Placeholder for now
+          engPrice: "45.00",
           jpPrice: "22.00",
           image: card.card_image || "",
           cardTypeKey: cardTypeKey
         };
 
-        // Send to the open display
         localStorage.setItem('revealData', JSON.stringify(revealData));
 
         document.getElementById("status").innerHTML = `✅ Sent: ${card.card_name}`;
@@ -93,4 +91,3 @@
   </script>
 </body>
 </html>
- 

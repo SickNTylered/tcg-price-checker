@@ -26,7 +26,7 @@
 
     <input type="text" id="command" placeholder=":pc OP05-123 AA" autofocus>
     <br>
-    <button onclick="processCommand()">🔥 FETCH & REVEAL ON STREAM</button>
+    <button onclick="processCommand()">🔥 SEND TO DISPLAY</button>
 
     <div id="status"></div>
   </div>
@@ -40,7 +40,7 @@
       }
 
       const currency = document.getElementById("currency").value;
-      document.getElementById("status").innerHTML = "Fetching card...";
+      document.getElementById("status").innerHTML = "Fetching...";
 
       const parts = cmd.toLowerCase().replace(":pc", "").trim().split(/\s+/);
       let cardNum = null;
@@ -56,7 +56,6 @@
       }
 
       try {
-        // Get card art + info from OPTCG API
         const res = await fetch(`https://www.optcgapi.com/api/sets/card/${cardNum}`);
         const data = await res.json();
         const card = Array.isArray(data) ? data[0] : data;
@@ -68,18 +67,20 @@
         if (card.rarity === "L" || nameLower.includes("leader")) cardTypeKey = "leader";
         else if (nameLower.includes("don") || nameLower.includes("dawn")) cardTypeKey = "don";
 
-        // Build URL for display
-        const displayUrl = `display.html?name=${encodeURIComponent(card.card_name)}` +
-          `&number=${encodeURIComponent(cardNum)}` +
-          `&printing=${encodeURIComponent(hint ? "Alternate Art" : "Regular")}` +
-          `&engPrice=45.00` +     // Placeholder - we'll improve pricing soon
-          `&jpPrice=22.00` +
-          `&image=${encodeURIComponent(card.card_image || "")}` +
-          `&cardTypeKey=${cardTypeKey}`;
+        const revealData = {
+          name: card.card_name || "Unknown Card",
+          number: cardNum,
+          printing: hint ? "Alternate Art" : "Regular",
+          engPrice: "45.00",        // Placeholder for now
+          jpPrice: "22.00",
+          image: card.card_image || "",
+          cardTypeKey: cardTypeKey
+        };
 
-        window.open(displayUrl, '_blank');
+        // Send to display using localStorage
+        localStorage.setItem('revealData', JSON.stringify(revealData));
 
-        document.getElementById("status").innerHTML = `✅ Revealed ${card.card_name} in ${currency}`;
+        document.getElementById("status").innerHTML = `✅ Sent to display: ${card.card_name}`;
         document.getElementById("command").value = "";
 
       } catch (err) {

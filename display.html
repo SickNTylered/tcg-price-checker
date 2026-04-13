@@ -57,18 +57,18 @@
       object-fit: contain;
     }
 
-    /* Floating Green Text - Below the card, darker saturated green */
+    /* Floating Neon Green Text - Below the card, softer glow */
     #priceOverlay {
       position: absolute;
-      top: 545px;                    /* Below the card */
+      top: 545px;
       left: 50%;
       transform: translateX(-50%);
-      color: #00cc66;                /* Darker saturated green */
+      color: #00ff9d;                    /* Neon green */
       text-align: center;
       text-shadow: 
-        0 0 10px #00ff88,
-        0 0 20px #00ff88,
-        0 0 35px #00ff88;
+        0 0 8px #00ff9d,
+        0 0 16px #00ff9d,
+        0 0 25px #00ff9d;
       font-size: 22px;
       line-height: 1.3;
       white-space: nowrap;
@@ -106,7 +106,7 @@
       </div>
     </div>
 
-    <!-- Green Text Below the Card -->
+    <!-- Neon Green Text Below the Card -->
     <div id="priceOverlay">
       <div class="last-sold">LAST SOLD FOR</div>
       <div id="priceText" class="prices">ENG: $0.00 • JP: $0.00</div>
@@ -174,7 +174,7 @@
 
     window.showCardReveal = showCardReveal;
 
-    console.log("✅ Text moved below card - darker green with glow");
+    console.log("✅ Softer neon green text + back should show first");
   </script>
 </body>
 </html>

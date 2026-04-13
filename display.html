@@ -14,16 +14,16 @@
     #scene {
       position: absolute;
       left: 50%;
-      bottom: -720px;
+      top: 50%;
+      transform: translate(-50%, -50%);
       width: 400px;
-      transform: translateX(-50%);
-      transition: bottom 1.1s cubic-bezier(0.25, 0.1, 0.25, 1);
       opacity: 0;
+      transition: opacity 0.8s ease-in, transform 1.1s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
 
     #scene.show {
-      bottom: 140px;
       opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
     }
 
     .card-container {
@@ -103,12 +103,23 @@
   </div>
 
   <script>
-    function showCardReveal(data = {}) {
-      const backFace = document.getElementById('backFace');
-      const frontFace = document.getElementById('frontFace');
-      const priceOverlay = document.getElementById('priceOverlay');
-      const priceText = document.getElementById('priceText');
+    const scene = document.getElementById('scene');
+    const backFace = document.getElementById('backFace');
+    const frontFace = document.getElementById('frontFace');
+    const priceOverlay = document.getElementById('priceOverlay');
+    const priceText = document.getElementById('priceText');
 
+    function animateCountUp(finalEng, finalJp) {
+      let startTime = Date.now();
+      const duration = 1600;
+      const interval = setInterval(() => {
+        const progress = Math.min((Date.now() - startTime) / duration, 1);
+        priceText.textContent = `ENG: $${(finalEng * progress).toFixed(2)} JP: $${(finalJp * progress).toFixed(2)}`;
+        if (progress >= 1) clearInterval(interval);
+      }, 16);
+    }
+
+    function showCardReveal(data = {}) {
       let backClass = "default";
       const nameLower = (data.name || "").toLowerCase();
       if (data.cardTypeKey === "leader" || nameLower.includes("leader")) backClass = "leader";
@@ -118,11 +129,11 @@
       document.getElementById('cardImage').src = data.image || "https://picsum.photos/id/237/380/530";
 
       // Reset
-      document.getElementById('scene').classList.remove('show');
+      scene.classList.remove('show');
       frontFace.classList.remove('show');
       priceOverlay.classList.remove('show');
 
-      setTimeout(() => document.getElementById('scene').classList.add('show'), 100);
+      setTimeout(() => scene.classList.add('show'), 100);
 
       setTimeout(() => {
         frontFace.classList.add('show');
@@ -130,46 +141,34 @@
 
         const engPrice = parseFloat(data.engPrice) || 0;
         const jpPrice = parseFloat(data.jpPrice) || 0;
-
-        let startTime = Date.now();
-        const duration = 1600;
-        const interval = setInterval(() => {
-          const progress = Math.min((Date.now() - startTime) / duration, 1);
-          const currentEng = (engPrice * progress).toFixed(2);
-          const currentJp = (jpPrice * progress).toFixed(2);
-          priceText.textContent = `ENG: $${currentEng} JP: $${currentJp}`;
-          if (progress >= 1) clearInterval(interval);
-        }, 16);
+        animateCountUp(engPrice, jpPrice);
       }, 1100);
 
       setTimeout(() => {
-        document.getElementById('scene').style.bottom = '-720px';
-        setTimeout(() => {
-          document.getElementById('scene').classList.remove('show');
-          frontFace.classList.remove('show');
-          priceOverlay.classList.remove('show');
-        }, 1300);
+        scene.classList.remove('show');
+        frontFace.classList.remove('show');
+        priceOverlay.classList.remove('show');
       }, 10500);
     }
 
-    // Support URL parameters from control panel
-    window.onload = function() {
-      const params = new URLSearchParams(window.location.search);
-      if (params.has('name')) {
-        const data = {
-          name: params.get('name'),
-          number: params.get('number'),
-          printing: params.get('printing'),
-          engPrice: params.get('engPrice'),
-          jpPrice: params.get('jpPrice'),
-          image: params.get('image'),
-          cardTypeKey: params.get('cardTypeKey') || 'default'
-        };
+    // Listen for updates from control panel
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'revealData' && e.newValue) {
+        const data = JSON.parse(e.newValue);
         showCardReveal(data);
+      }
+    });
+
+    // Also check on load in case it's already set
+    window.onload = function() {
+      const saved = localStorage.getItem('revealData');
+      if (saved) {
+        showCardReveal(JSON.parse(saved));
       }
     };
 
     window.showCardReveal = showCardReveal;
+    console.log("✅ Display ready - centered + listens for control updates");
   </script>
 </body>
 </html>

@@ -2,33 +2,35 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>One Piece Price Reveal</title>
+  <title>One Piece Reveal</title>
   <style>
     body { 
-      margin:0; 
-      background: rgba(0,0,0,0) !important; 
+      margin: 0; 
+      background: transparent; 
       overflow: hidden; 
-      perspective: 1400px; 
+      perspective: 1600px; 
+      font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
     }
 
     #scene {
-      position: absolute; 
-      left: 80px; 
-      bottom: -500px;   
-      width: 720px;
-      transition: bottom 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+      position: absolute;
+      left: 50%;
+      bottom: -650px;
+      width: 380px;
+      transform: translateX(-50%);
+      transition: bottom 0.9s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
 
     #scene.show {
-      bottom: 100px;
+      bottom: 90px;
     }
 
     .card {
-      width: 100%; 
-      height: 420px;
+      width: 100%;
+      height: 530px;
       position: relative;
       transform-style: preserve-3d;
-      transition: transform 1.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+      transition: transform 1.6s cubic-bezier(0.23, 1, 0.32, 1);
     }
 
     .card.show-front {
@@ -36,61 +38,93 @@
     }
 
     .face {
-      position: absolute; 
-      width: 100%; 
+      position: absolute;
+      width: 100%;
       height: 100%;
       backface-visibility: hidden;
-      border-radius: 18px; 
+      border-radius: 22px;
       overflow: hidden;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.7);
-      background-size: cover;
-      background-position: center;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.85);
     }
 
-    .back { background: linear-gradient(135deg, #1a1a2e, #16213e); }
-    .back.leader { background: linear-gradient(135deg, #8b0000, #4b0000); }
+    /* Card Backs */
+    .back {
+      background: linear-gradient(135deg, #1a1a2e, #0f1629);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .back.leader { background: linear-gradient(135deg, #8b0000, #3d0000); }
     .back.don    { background: linear-gradient(135deg, #ffd700, #b8860b); }
 
     .front {
-      background: #111;
+      background: #0a0a14;
       transform: rotateY(180deg);
-      display: flex; 
-      align-items: center; 
-      gap: 25px; 
-      padding: 25px;
+      display: flex;
+      flex-direction: column;
     }
 
     .front img {
-      width: 240px; 
-      border-radius: 12px; 
-      border: 4px solid #ffd700;
-      box-shadow: 0 0 30px #ffd700;
+      width: 100%;
+      height: 390px;
+      object-fit: contain;
+      border-bottom: 8px solid #00cc66;
     }
 
-    .info { color: white; flex: 1; }
-    .name { font-size: 26px; font-weight: bold; margin: 0 0 8px 0; }
-    .details { font-size: 18px; opacity: 0.9; }
-    .price { font-size: 32px; font-weight: bold; color: #00ff9d; }
+    /* Solid Green Bar */
+    .details-bar {
+      background: #00cc66;
+      color: #000;
+      padding: 16px 20px;
+      font-size: 21px;
+      line-height: 1.25;
+      text-align: left;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .name { 
+      font-size: 27px; 
+      font-weight: bold; 
+      margin-bottom: 6px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+    .info-line { 
+      font-size: 19px; 
+      margin: 3px 0;
+    }
 
     .sparkles {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-      background: radial-gradient(circle, rgba(255,215,0,0.6) 10%, transparent 70%);
-      opacity: 0; pointer-events: none;
-      animation: sparkle 1.8s ease-out forwards;
+      position: absolute; 
+      top: 0; left: 0; width: 100%; height: 100%; 
+      background: radial-gradient(circle, rgba(255,215,0,0.75) 15%, transparent 70%);
+      opacity: 0;
+      pointer-events: none;
+      animation: sparkleAnim 2s ease-out forwards;
     }
-    @keyframes sparkle { 0% { opacity: 0; transform: scale(0.8); } 20% { opacity: 1; } 100% { opacity: 0; transform: scale(1.2); } }
+
+    @keyframes sparkleAnim {
+      0%   { opacity: 0; transform: scale(0.6); }
+      30%  { opacity: 1; }
+      100% { opacity: 0; transform: scale(1.4); }
+    }
   </style>
 </head>
 <body>
   <div id="scene">
     <div id="card" class="card">
+      <!-- Back -->
       <div id="backFace" class="face back"></div>
+      
+      <!-- Front -->
       <div class="face front">
-        <img id="cardImage" src="" alt="Card">
-        <div class="info">
-          <div class="name" id="name">Card Name</div>
-          <div class="details" id="details">Printing • LANG</div>
-          <div class="price" id="price">ENG: $XX • JP: $XX</div>
+        <img id="cardImage" src="" alt="Card Art">
+        <div class="details-bar">
+          <div class="name" id="name">Card Name (OPXX-XXX)</div>
+          <div class="info-line" id="details">Printing • ENG</div>
+          <div class="info-line" id="price">ENG: $00.00 • JP: $00.00</div>
         </div>
         <div class="sparkles"></div>
       </div>
@@ -103,9 +137,9 @@
     const backFace = document.getElementById('backFace');
 
     function showCardReveal(data = {}) {
-      console.log("Reveal triggered:", data);
+      console.log("🎴 Reveal triggered:", data);
 
-      // Dynamic back
+      // Dynamic card back
       let backClass = "default";
       const nameLower = (data.name || "").toLowerCase();
       if (data.cardTypeKey === "leader" || nameLower.includes("leader")) backClass = "leader";
@@ -113,36 +147,36 @@
 
       backFace.className = `face back ${backClass}`;
 
-      // Front
-      document.getElementById('cardImage').src = data.image || "https://picsum.photos/id/237/240/340";
-      document.getElementById('name').textContent = `${data.name || "Unknown"} (${data.number || "OPXX-XXX"})`;
+      // Front image (full card art)
+      document.getElementById('cardImage').src = data.image || "https://picsum.photos/id/237/380/390";
+
+      // Text
+      document.getElementById('name').textContent = `${data.name || "Unknown Card"} (${data.number || "OPXX-XXX"})`;
       document.getElementById('details').textContent = `${data.printing || "Regular"} • ${data.lang || "ENG"}`;
       document.getElementById('price').textContent = `ENG: $${data.engPrice || "N/A"} • JP: $${data.jpPrice || "N/A"}`;
 
-      // Animation
+      // Animation sequence
       scene.classList.add('show');
       card.classList.remove('show-front');
 
       setTimeout(() => {
         card.classList.add('show-front');
-        document.querySelector('.sparkles').style.animation = 'sparkle 1.8s ease-out forwards';
-      }, 500);
+        document.querySelector('.sparkles').style.animation = 'sparkleAnim 2s ease-out forwards';
+      }, 700);
 
-      // Auto hide after 10 seconds
+      // Auto drop off screen after ~10 seconds
       setTimeout(() => {
-        scene.style.bottom = '-500px';
+        scene.style.bottom = '-650px';
         setTimeout(() => {
           scene.classList.remove('show');
           card.classList.remove('show-front');
-        }, 900);
+        }, 1000);
       }, 10500);
     }
 
-    // Make it available globally
     window.showCardReveal = showCardReveal;
 
-    // For testing
-    console.log("✅ Display ready. Use control.html or call showCardReveal() in console.");
+    console.log("✅ Display ready - Portrait green style loaded");
   </script>
 </body>
 </html>

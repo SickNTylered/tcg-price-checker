@@ -35,21 +35,28 @@
       box-shadow: 0 30px 60px rgba(0,0,0,0.85);
     }
 
-    .back, .front {
+    .back {
       position: absolute;
       width: 100%;
       height: 100%;
-      border-radius: 22px;
-      overflow: hidden;
-    }
-
-    .back {
       background-size: cover;
       background-position: center;
     }
+    .back.default { background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Back.png'); }
     .back.leader { background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Leader.png'); }
     .back.don    { background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Don.png'); }
-    .back.default { background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Back.png'); }
+
+    .front {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      transition: opacity 0.8s ease-in;
+    }
+
+    .front.show {
+      opacity: 1;
+    }
 
     .front img {
       width: 100%;
@@ -57,20 +64,17 @@
       object-fit: contain;
     }
 
-    /* Floating Green Text - NO box, fully transparent background */
+    /* Floating Green Text - No box */
     .price-overlay {
       position: absolute;
-      top: -85px;                    /* Floats well above the card */
+      top: -95px;
       left: 50%;
       transform: translateX(-50%);
       color: #00ff88;
       text-align: center;
-      text-shadow: 
-        0 0 10px #00ff88,
-        0 0 20px #00ff88,
-        0 0 30px #00ff88;
+      text-shadow: 0 0 15px #00ff88, 0 0 30px #00ff88;
       font-size: 21px;
-      line-height: 1.25;
+      line-height: 1.3;
       white-space: nowrap;
       z-index: 20;
       opacity: 0;
@@ -91,21 +95,6 @@
       font-size: 26px;
       font-weight: bold;
     }
-
-    .sparkles {
-      position: absolute; 
-      top: 0; left: 0; width: 100%; height: 100%; 
-      background: radial-gradient(circle, rgba(255,215,0,0.75) 15%, transparent 70%);
-      opacity: 0;
-      pointer-events: none;
-      animation: sparkleAnim 2.3s ease-out forwards;
-    }
-
-    @keyframes sparkleAnim {
-      0%   { opacity: 0; transform: scale(0.5); }
-      40%  { opacity: 1; }
-      100% { opacity: 0; transform: scale(1.45); }
-    }
   </style>
 </head>
 <body>
@@ -114,13 +103,12 @@
       <!-- Back -->
       <div id="backFace" class="back default"></div>
       
-      <!-- Front - Pure card art -->
+      <!-- Front - Full card art -->
       <div id="frontFace" class="front">
         <img id="cardImage" src="" alt="Card Art">
-        <div class="sparkles"></div>
       </div>
 
-      <!-- Floating Green Text (no box) -->
+      <!-- Floating Green Text -->
       <div id="priceOverlay" class="price-overlay">
         <div class="last-sold">LAST SOLD FOR</div>
         <div id="priceText" class="prices">ENG: $0.00 • JP: $0.00</div>
@@ -135,8 +123,9 @@
     const priceOverlay = document.getElementById('priceOverlay');
     const priceText = document.getElementById('priceText');
 
-    function animateCountUp(finalEng, finalJp, duration = 1600) {
+    function animateCountUp(finalEng, finalJp) {
       let startTime = Date.now();
+      const duration = 1600;
       const interval = setInterval(() => {
         const progress = Math.min((Date.now() - startTime) / duration, 1);
         const currentEng = (finalEng * progress).toFixed(2);
@@ -151,7 +140,7 @@
     function showCardReveal(data = {}) {
       console.log("🎴 Reveal triggered:", data);
 
-      // Dynamic back
+      // Set dynamic back
       let backClass = "default";
       const nameLower = (data.name || "").toLowerCase();
       if (data.cardTypeKey === "leader" || nameLower.includes("leader")) backClass = "leader";
@@ -159,31 +148,30 @@
 
       backFace.className = `back ${backClass}`;
 
-      // Full clean card art
+      // Set full card art
       document.getElementById('cardImage').src = data.image || "https://picsum.photos/id/237/380/530";
 
-      // Reset
+      // Reset everything
       scene.classList.remove('show');
       frontFace.classList.remove('show');
       priceOverlay.classList.remove('show');
 
-      // Rise from bottom with back
+      // 1. Rise from bottom showing back
       setTimeout(() => {
         scene.classList.add('show');
       }, 100);
 
-      // Reveal front + floating green text
+      // 2. Switch to front + show text
       setTimeout(() => {
         frontFace.classList.add('show');
         priceOverlay.classList.add('show');
 
-        // Count-up effect
         const engPrice = parseFloat(data.engPrice) || 0;
         const jpPrice = parseFloat(data.jpPrice) || 0;
         animateCountUp(engPrice, jpPrice);
       }, 1100);
 
-      // Drop back down after ~10 seconds
+      // 3. Drop back down
       setTimeout(() => {
         scene.style.bottom = '-720px';
         setTimeout(() => {
@@ -196,7 +184,7 @@
 
     window.showCardReveal = showCardReveal;
 
-    console.log("✅ No box version - floating green text above full card art");
+    console.log("✅ Clean version - back first, full art, floating green text");
   </script>
 </body>
 </html>

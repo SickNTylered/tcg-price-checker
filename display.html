@@ -4,40 +4,90 @@
   <meta charset="UTF-8">
   <title>One Piece Price Reveal</title>
   <style>
-    body { margin:0; background:transparent; overflow:hidden; font-family:Impact, Haettenschweiler, "Arial Black", sans-serif; }
-
-    #scene {
-      position:absolute; left:50%; top:50%; transform:translate(-50%, 120%);
-      width:400px; transition:top 1.8s cubic-bezier(0.25,0.1,0.25,1);
+    body { 
+      margin: 0; 
+      background: transparent; 
+      overflow: hidden; 
+      font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
     }
 
-    #scene.show { transform:translate(-50%, -50%); }
+    #scene {
+      position: absolute;
+      left: 50%;
+      width: 400px;
+      transform: translateX(-50%);
+      transition: top 1.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+      z-index: 10;
+    }
 
     .card-container {
-      width:100%; height:530px; position:relative; border-radius:22px; overflow:hidden;
-      box-shadow:0 20px 40px rgba(0,0,0,0.7);
+      width: 100%;
+      height: 530px;
+      position: relative;
+      border-radius: 22px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.7);
     }
 
     .back, .front {
-      position:absolute; width:100%; height:100%; border-radius:22px; overflow:hidden;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 22px;
+      overflow: hidden;
     }
 
-    .back { background-size:cover; background-position:center; }
-    .back.default { background-image:url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Back.png'); }
-    .back.leader { background-image:url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Leader.png'); }
-    .back.don { background-image:url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Don.png'); }
+    .back {
+      background-size: cover;
+      background-position: center;
+    }
+    .back.default { background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Back.png'); }
+    .back.leader { background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Leader.png'); }
+    .back.don    { background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Don.png'); }
 
-    .front img { width:100%; height:100%; object-fit:contain; }
+    .front {
+      opacity: 0;
+      transition: opacity 0.9s ease-in;
+    }
+
+    .front.show {
+      opacity: 1;
+    }
+
+    .front img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
 
     #priceOverlay {
-      position:absolute; top:555px; left:50%; transform:translateX(-50%);
-      color:#00cc66; text-align:center; white-space:nowrap; z-index:100; opacity:0;
-      transition:opacity 0.7s ease-in;
+      position: absolute;
+      top: 555px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #00cc66;
+      text-align: center;
+      white-space: nowrap;
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.7s ease-in;
     }
-    #priceOverlay.show { opacity:1; }
 
-    .last-sold { font-size:50px; font-weight:bold; margin-bottom:8px; color:white; }
-    .prices { font-size:60px; font-weight:bold; }
+    #priceOverlay.show {
+      opacity: 1;
+    }
+
+    .last-sold {
+      font-size: 50px;
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: white;
+    }
+
+    .prices {
+      font-size: 60px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -56,50 +106,72 @@
   </div>
 
   <script>
-    function showCardReveal(data) {
+    const scene = document.getElementById('scene');
+    const backFace = document.getElementById('backFace');
+    const frontFace = document.getElementById('frontFace');
+    const priceOverlay = document.getElementById('priceOverlay');
+    const priceText = document.getElementById('priceText');
+
+    function animateCountUp(finalEng, finalJp) {
+      let startTime = Date.now();
+      const duration = 1600;
+      const interval = setInterval(() => {
+        const progress = Math.min((Date.now() - startTime) / duration, 1);
+        priceText.textContent = `ENG: $${(finalEng * progress).toFixed(2)} JP: $${(finalJp * progress).toFixed(2)}`;
+        if (progress >= 1) clearInterval(interval);
+      }, 16);
+    }
+
+    function showCardReveal(data = {}) {
+      console.log("New reveal started", data);
+
       let backClass = "default";
       const nameLower = (data.name || "").toLowerCase();
       if (data.cardTypeKey === "leader" || nameLower.includes("leader")) backClass = "leader";
       else if (data.cardTypeKey === "don" || nameLower.includes("don") || nameLower.includes("dawn")) backClass = "don";
 
-      document.getElementById('backFace').className = `back ${backClass}`;
+      backFace.className = `back ${backClass}`;
       document.getElementById('cardImage').src = data.image || "https://picsum.photos/id/237/380/530";
 
-      const scene = document.getElementById('scene');
-      const front = document.getElementById('frontFace');
-      const overlay = document.getElementById('priceOverlay');
-
+      // Reset
       scene.style.top = '120%';
-      front.classList.remove('show');
-      overlay.classList.remove('show');
+      frontFace.classList.remove('show');
+      priceOverlay.classList.remove('show');
 
-      setTimeout(() => scene.style.top = '50%', 4000);
-
+      // 1. Start at bottom, face down
       setTimeout(() => {
-        front.classList.add('show');
-        overlay.classList.add('show');
+        scene.style.top = '50%';   // Slide up to center while still back
+      }, 4000);   // 4 second wait before moving up
+
+      // 2. After reaching center, hold on back for 7 seconds
+      setTimeout(() => {
+        frontFace.classList.add('show');
+        priceOverlay.classList.add('show');
+
+        const engPrice = parseFloat(data.engPrice) || 0;
+        const jpPrice = parseFloat(data.jpPrice) || 0;
+        animateCountUp(engPrice, jpPrice);
       }, 4000 + 1800 + 7000);
 
+      // 3. Hold final frame for 14 seconds then slide back down
       setTimeout(() => {
         scene.style.top = '120%';
+        setTimeout(() => {
+          frontFace.classList.remove('show');
+          priceOverlay.classList.remove('show');
+        }, 2000);
       }, 4000 + 1800 + 7000 + 14000);
     }
 
-    // Support URL parameters from control
-    window.onload = function() {
-      const p = new URLSearchParams(window.location.search);
-      if (p.has('name')) {
-        showCardReveal({
-          name: p.get('name'),
-          number: p.get('number'),
-          printing: p.get('printing'),
-          engPrice: p.get('engPrice'),
-          jpPrice: p.get('jpPrice'),
-          image: p.get('image'),
-          cardTypeKey: p.get('cardTypeKey') || 'default'
-        });
+    // Listen for control panel
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'revealData' && e.newValue) {
+        showCardReveal(JSON.parse(e.newValue));
       }
-    };
+    });
+
+    window.showCardReveal = showCardReveal;
+    console.log("✅ Timing updated: 4s wait → slide up with back → 7s hold → reveal → 14s hold → slide down");
   </script>
 </body>
 </html>

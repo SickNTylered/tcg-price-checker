@@ -15,14 +15,14 @@
     #scene {
       position: absolute;
       left: 50%;
-      bottom: -680px;           /* Starts below screen */
+      bottom: -680px;
       width: 380px;
       transform: translateX(-50%);
       transition: bottom 0.95s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
 
     #scene.show {
-      bottom: 90px;             /* Rises to visible position */
+      bottom: 90px;
     }
 
     .card {
@@ -47,17 +47,24 @@
       box-shadow: 0 30px 60px rgba(0,0,0,0.85);
     }
 
-    /* Card Backs - You can replace these with GitHub raw links */
+    /* ==================== CARD BACKS - INSERT YOUR LINKS HERE ==================== */
     .back {
-      background: linear-gradient(135deg, #1a1a2e, #0f1629);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #aaa;
-      font-size: 18px;
+      background: linear-gradient(135deg, #1a1a2e, #0f1629); /* Fallback */
+      background-image: url('https://github.com/SickNTylered/tcg-price-checker/blob/main/Back.png?raw=true'); /* ← INSERT STANDARD BACK LINK HERE */
+      background-size: cover;
+      background-position: center;
     }
-    .back.leader { background: linear-gradient(135deg, #8b0000, #3d0000); }
-    .back.don    { background: linear-gradient(135deg, #ffd700, #b8860b); }
+    .back.leader {
+      background-image: url('https://github.com/SickNTylered/tcg-price-checker/blob/main/Leader.png?raw=true'); /* ← INSERT LEADER BACK LINK HERE */
+      background-size: cover;
+      background-position: center;
+    }
+    .back.don {
+      background-image: url('https://github.com/SickNTylered/tcg-price-checker/blob/main/Don.png?raw=true'); /* ← INSERT DON BACK LINK HERE */
+      background-size: cover;
+      background-position: center;
+    }
+    /* ========================================================================= */
 
     .front {
       background: #0a0a14;
@@ -135,7 +142,7 @@
     function showCardReveal(data = {}) {
       console.log("🎴 Reveal triggered:", data);
 
-      // Dynamic back
+      // Dynamic back based on card type
       let backClass = "default";
       const nameLower = (data.name || "").toLowerCase();
       if (data.cardTypeKey === "leader" || nameLower.includes("leader")) backClass = "leader";
@@ -143,22 +150,22 @@
 
       backFace.className = `face back ${backClass}`;
 
-      // Set card art (portrait)
+      // Set card art
       const img = document.getElementById('cardImage');
       img.src = data.image || "https://picsum.photos/id/237/380/390";
-      img.onerror = () => img.src = "https://picsum.photos/id/237/380/390";
+      img.onerror = () => { img.src = "https://picsum.photos/id/237/380/390"; };
 
-      // Text
+      // Text details
       document.getElementById('name').textContent = `${data.name || "Unknown Card"} (${data.number || "OPXX-XXX"})`;
       document.getElementById('details').textContent = `${data.printing || "Regular"} • ${data.lang || "ENG"}`;
       document.getElementById('price').textContent = `ENG: $${data.engPrice || "N/A"} • JP: $${data.jpPrice || "N/A"}`;
 
-      // Reset and trigger animation
+      // Animation: Rise from bottom → Flip → Sparkles → Fall back down
       scene.classList.add('show');
       card.classList.remove('show-front');
 
       setTimeout(() => {
-        card.classList.add('show-front');           // Flip to front
+        card.classList.add('show-front');
         document.querySelector('.sparkles').style.animation = 'sparkleAnim 2s ease-out forwards';
       }, 650);
 
@@ -174,7 +181,7 @@
 
     window.showCardReveal = showCardReveal;
 
-    console.log("✅ Fixed display loaded - starts with back, rises from bottom, falls back down");
+    console.log("✅ Display ready! Replace the 3 back URLs in the CSS section with your GitHub raw links.");
   </script>
 </body>
 </html>

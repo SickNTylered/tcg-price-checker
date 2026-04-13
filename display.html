@@ -60,7 +60,6 @@
       object-fit: contain;
     }
 
-    /* Text below card */
     #priceOverlay {
       position: absolute;
       top: 555px;
@@ -71,7 +70,7 @@
       white-space: nowrap;
       z-index: 100;
       opacity: 0;
-      transition: opacity 0.8s ease-in;
+      transition: opacity 0.7s ease-in;
     }
 
     #priceOverlay.show {
@@ -94,16 +93,12 @@
 <body>
   <div id="scene">
     <div class="card-container">
-      <!-- Back -->
       <div id="backFace" class="back default"></div>
-      
-      <!-- Front -->
       <div id="frontFace" class="front">
         <img id="cardImage" src="" alt="Card Art">
       </div>
     </div>
 
-    <!-- Text -->
     <div id="priceOverlay">
       <div class="last-sold">LAST SOLD FOR</div>
       <div id="priceText" class="prices">ENG: $0.00 JP: $0.00</div>
@@ -117,22 +112,22 @@
     const priceOverlay = document.getElementById('priceOverlay');
     const priceText = document.getElementById('priceText');
 
+    let lastTimestamp = 0;
+    const JSON_URL = "https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/reveal.json";   // ← CHANGE TO YOUR RAW URL
+
     function animateCountUp(finalEng, finalJp) {
       let startTime = Date.now();
       const duration = 1600;
       const interval = setInterval(() => {
         const progress = Math.min((Date.now() - startTime) / duration, 1);
-        const currentEng = (finalEng * progress).toFixed(2);
-        const currentJp = (finalJp * progress).toFixed(2);
-        priceText.textContent = `ENG: $${currentEng} JP: $${currentJp}`;
+        priceText.textContent = `ENG: $${(finalEng * progress).toFixed(2)} JP: $${(finalJp * progress).toFixed(2)}`;
         if (progress >= 1) clearInterval(interval);
       }, 16);
     }
 
-    async function showCardReveal(data = {}) {
-      console.log("New reveal started", data);
+    function showCardReveal(data) {
+      console.log("New reveal:", data);
 
-      // Dynamic back
       let backClass = "default";
       const nameLower = (data.name || "").toLowerCase();
       if (data.cardTypeKey === "leader" || nameLower.includes("leader")) backClass = "leader";
@@ -141,18 +136,14 @@
       backFace.className = `back ${backClass}`;
       document.getElementById('cardImage').src = data.image || "https://picsum.photos/id/237/380/530";
 
-      // Reset everything
-      scene.style.top = '120%';           // Start below screen
+      scene.style.top = '120%';
       frontFace.classList.remove('show');
       priceOverlay.classList.remove('show');
 
-      // 1. ON TRIGGER: Start with back at bottom
       setTimeout(() => {
-        scene.style.transition = 'top 1.8s cubic-bezier(0.25, 0.1, 0.25, 1)';
-        scene.style.top = '50%';           // Move up to center while still back
-      }, 4000);   // Wait 4 seconds before moving up
+        scene.style.top = '50%';
+      }, 4000);
 
-      // 2. After reaching top, wait 7 seconds on back
       setTimeout(() => {
         frontFace.classList.add('show');
         priceOverlay.classList.add('show');
@@ -160,28 +151,31 @@
         const engPrice = parseFloat(data.engPrice) || 0;
         const jpPrice = parseFloat(data.jpPrice) || 0;
         animateCountUp(engPrice, jpPrice);
-      }, 4000 + 1800 + 7000);   // 4s wait + 1.8s move + 7s hold on back
+      }, 4000 + 1800 + 7000);
 
-      // 3. Hold final frame for 14 seconds then slide back down
       setTimeout(() => {
-        scene.style.transition = 'top 1.8s cubic-bezier(0.25, 0.1, 0.25, 1)';
-        scene.style.top = '120%';   // Slide back down
+        scene.style.top = '120%';
         setTimeout(() => {
           frontFace.classList.remove('show');
           priceOverlay.classList.remove('show');
         }, 2000);
-      }, 4000 + 1800 + 7000 + 14000);   // Total hold time
+      }, 4000 + 1800 + 7000 + 14000);
     }
 
-    // Listen for control panel updates
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'revealData' && e.newValue) {
-        showCardReveal(JSON.parse(e.newValue));
-      }
-    });
+    // Poll GitHub JSON every 1.5 seconds
+    setInterval(() => {
+      fetch(JSON_URL + "?t=" + Date.now())
+        .then(res => res.json())
+        .then(data => {
+          if (data.timestamp && data.timestamp > lastTimestamp) {
+            lastTimestamp = data.timestamp;
+            showCardReveal(data);
+          }
+        })
+        .catch(() => {});
+    }, 1500);
 
-    window.showCardReveal = showCardReveal;
-    console.log("✅ New timing: 4s wait → slide up with back → 7s on back → reveal + text → 14s hold → slide down");
+    console.log("✅ GitHub polling display ready");
   </script>
 </body>
 </html>

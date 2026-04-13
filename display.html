@@ -14,13 +14,13 @@
     #scene {
       position: absolute; 
       left: 80px; 
-      bottom: -500px;   /* Start off-screen below */
+      bottom: -500px;   
       width: 720px;
       transition: bottom 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
 
     #scene.show {
-      bottom: 100px;   /* Rise to visible position */
+      bottom: 100px;
     }
 
     .card {
@@ -43,11 +43,11 @@
       border-radius: 18px; 
       overflow: hidden;
       box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+      background-size: cover;
+      background-position: center;
     }
 
-    .back {
-      background: linear-gradient(135deg, #1a1a2e, #16213e);
-    }
+    .back { background: linear-gradient(135deg, #1a1a2e, #16213e); }
     .back.leader { background: linear-gradient(135deg, #8b0000, #4b0000); }
     .back.don    { background: linear-gradient(135deg, #ffd700, #b8860b); }
 
@@ -72,7 +72,6 @@
     .details { font-size: 18px; opacity: 0.9; }
     .price { font-size: 32px; font-weight: bold; color: #00ff9d; }
 
-    /* Sparkle overlay */
     .sparkles {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
       background: radial-gradient(circle, rgba(255,215,0,0.6) 10%, transparent 70%);
@@ -80,12 +79,6 @@
       animation: sparkle 1.8s ease-out forwards;
     }
     @keyframes sparkle { 0% { opacity: 0; transform: scale(0.8); } 20% { opacity: 1; } 100% { opacity: 0; transform: scale(1.2); } }
-
-    #testButton {
-      position: absolute; top: 20px; left: 20px; z-index: 9999;
-      padding: 12px 24px; background: #00ff9d; color: #000; border: none;
-      border-radius: 8px; font-weight: bold; cursor: pointer;
-    }
   </style>
 </head>
 <body>
@@ -93,88 +86,63 @@
     <div id="card" class="card">
       <div id="backFace" class="face back"></div>
       <div class="face front">
-        <img id="cardImage" src="https://picsum.photos/id/237/240/340" alt="Card">
+        <img id="cardImage" src="" alt="Card">
         <div class="info">
           <div class="name" id="name">Card Name</div>
           <div class="details" id="details">Printing • LANG</div>
-          <div class="price" id="price">ENG: $XX AUD • JP: $XX AUD</div>
+          <div class="price" id="price">ENG: $XX • JP: $XX</div>
         </div>
         <div class="sparkles"></div>
       </div>
     </div>
   </div>
 
-  <button id="testButton" onclick="manualTestReveal()">🔄 Manual Test Reveal</button>
-
   <script>
     const scene = document.getElementById('scene');
     const card = document.getElementById('card');
     const backFace = document.getElementById('backFace');
-    const imgElement = document.getElementById('cardImage');
-
-    function getUrlParams() {
-      const p = new URLSearchParams(window.location.search);
-      return {
-        name: p.get('name'), number: p.get('number'), printing: p.get('printing'),
-        engPrice: p.get('engPrice'), jpPrice: p.get('jpPrice'),
-        image: p.get('image'), currency: p.get('currency') || 'AUD',
-        cardTypeKey: p.get('cardTypeKey') || 'default'
-      };
-    }
 
     function showCardReveal(data = {}) {
-      console.log("🎴 Reveal triggered:", data);
+      console.log("Reveal triggered:", data);
 
-      backFace.className = `face back ${data.cardTypeKey || 'default'}`;
+      // Dynamic back
+      let backClass = "default";
+      const nameLower = (data.name || "").toLowerCase();
+      if (data.cardTypeKey === "leader" || nameLower.includes("leader")) backClass = "leader";
+      else if (data.cardTypeKey === "don" || nameLower.includes("don") || nameLower.includes("dawn")) backClass = "don";
 
-      // Set image early
-      imgElement.src = data.image || "https://picsum.photos/id/237/240/340";
-      imgElement.onerror = () => imgElement.src = "https://picsum.photos/id/237/240/340";
+      backFace.className = `face back ${backClass}`;
 
+      // Front
+      document.getElementById('cardImage').src = data.image || "https://picsum.photos/id/237/240/340";
       document.getElementById('name').textContent = `${data.name || "Unknown"} (${data.number || "OPXX-XXX"})`;
       document.getElementById('details').textContent = `${data.printing || "Regular"} • ${data.lang || "ENG"}`;
+      document.getElementById('price').textContent = `ENG: $${data.engPrice || "N/A"} • JP: $${data.jpPrice || "N/A"}`;
 
-      let priceText = `ENG: $${data.engPrice || "N/A"} ${data.currency}`;
-      if (data.jpPrice && data.jpPrice !== "N/A") priceText += ` • JP: $${data.jpPrice} ${data.currency}`;
-      document.getElementById('price').textContent = priceText;
-
-      // Animation sequence
-      scene.classList.add('show');                    // Rise from bottom
+      // Animation
+      scene.classList.add('show');
       card.classList.remove('show-front');
 
       setTimeout(() => {
-        card.classList.add('show-front');             // Flip
+        card.classList.add('show-front');
         document.querySelector('.sparkles').style.animation = 'sparkle 1.8s ease-out forwards';
-      }, 600);
+      }, 500);
 
-      // Auto hide after ~10 seconds (drop off screen)
+      // Auto hide after 10 seconds
       setTimeout(() => {
-        scene.style.transition = 'bottom 0.8s ease-in';
         scene.style.bottom = '-500px';
         setTimeout(() => {
           scene.classList.remove('show');
-          scene.style.transition = 'bottom 0.8s cubic-bezier(0.25, 0.1, 0.25, 1)';
           card.classList.remove('show-front');
         }, 900);
       }, 10500);
     }
 
-    function manualTestReveal() {
-      showCardReveal({
-        name: "Nami", number: "OP05-001", printing: "Alternate Art",
-        engPrice: "45.50", jpPrice: "22.00", image: "https://picsum.photos/id/237/240/340",
-        currency: "AUD", cardTypeKey: "default"
-      });
-    }
+    // Make it available globally
+    window.showCardReveal = showCardReveal;
 
-    window.onload = function() {
-      const params = getUrlParams();
-      if (params.name) {
-        setTimeout(() => showCardReveal(params), 300);
-      }
-    };
-
-    console.log("✅ Final reveal version loaded. Click green button to test.");
+    // For testing
+    console.log("✅ Display ready. Use control.html or call showCardReveal() in console.");
   </script>
 </body>
 </html>

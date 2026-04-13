@@ -30,7 +30,7 @@
       height: 530px;
       position: relative;
       transform-style: preserve-3d;
-      transition: transform 1.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+      transition: transform 1.85s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
 
     .card.show-front {
@@ -145,43 +145,41 @@
       backFace.className = `face back ${backClass}`;
 
       // Set card art
-      const img = document.getElementById('cardImage');
-      img.src = data.image || "https://picsum.photos/id/237/380/390";
-      img.onerror = () => img.src = "https://picsum.photos/id/237/380/390";
+      document.getElementById('cardImage').src = data.image || "https://picsum.photos/id/237/380/390";
 
       // Set text
       document.getElementById('name').textContent = `${data.name || "Unknown Card"} (${data.number || "OPXX-XXX"})`;
       document.getElementById('details').textContent = `${data.printing || "Regular"} • ${data.lang || "ENG"}`;
       document.getElementById('price').textContent = `ENG: $${data.engPrice || "N/A"} • JP: $${data.jpPrice || "N/A"}`;
 
-      // Reset animation
+      // Reset everything
       scene.classList.remove('show');
       card.classList.remove('show-front');
 
-      // Step 1: Rise from bottom with back facing
+      // 1. Rise from bottom with BACK facing
       setTimeout(() => {
         scene.classList.add('show');
-      }, 50);
+      }, 100);
 
-      // Step 2: Flip to front after rising
+      // 2. Flip to FRONT after it's visible
       setTimeout(() => {
         card.classList.add('show-front');
         document.querySelector('.sparkles').style.animation = 'sparkleAnim 2.2s ease-out forwards';
-      }, 900);
+      }, 950);
 
-      // Step 3: Drop back down after ~10 seconds
+      // 3. Drop back down after 10 seconds (no extra flip)
       setTimeout(() => {
         scene.style.bottom = '-680px';
         setTimeout(() => {
           scene.classList.remove('show');
           card.classList.remove('show-front');
         }, 1200);
-      }, 10500);
+      }, 10200);
     }
 
     window.showCardReveal = showCardReveal;
 
-    console.log("✅ Fixed display - now starts with back, rises cleanly, flips once, then drops down");
+    console.log("✅ Cleaned display - should rise with back, flip once to front, then drop down");
   </script>
 </body>
 </html>

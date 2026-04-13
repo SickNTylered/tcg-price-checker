@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Price Check Control</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      background: #0f0f19; 
+      color: #fff; 
+      padding: 30px; 
+      text-align: center; 
+    }
+    input, button, select { 
+      padding: 14px; 
+      font-size: 18px; 
+      margin: 10px; 
+      border-radius: 8px; 
+    }
+    input { 
+      width: 520px; 
+      background: #1f1f2e; 
+      color: #fff; 
+      border: 2px solid #00ff9d; 
+    }
+    button { 
+      background: #00ff9d; 
+      color: #000; 
+      border: none; 
+      font-weight: bold; 
+      cursor: pointer; 
+      padding: 14px 40px;
+    }
+    #status { 
+      margin-top: 20px; 
+      font-size: 16px; 
+      min-height: 30px; 
+      color: #00ff9d; 
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <h2>One Piece Price Check Control</h2>
+    
+    <div>
+      <strong>Currency:</strong> 
+      <select id="currency">
+        <option value="AUD" selected>AUD</option>
+        <option value="USD">USD</option>
+        <option value="EUR">EUR</option>
+      </select>
+    </div>
+
+    <input type="text" id="command" placeholder=":pc OP05-123 AA" autofocus>
+    <br>
+    <button onclick="processCommand()">🔥 SEND TO DISPLAY</button>
+
+    <div id="status"></div>
+  </div>
+
+  <script>
+    const JSON_BIN_ID = "69dd050c856a6821892c5f10";           // ← Paste your JSONBin ID
+    const JSON_BIN_MASTER_KEY = "YOUR_MASTER_KEY_HERE";   // ← Paste your Master Key (if you have one)
+
+    async function processCommand() {
+      const cmd = document.getElementById("command").value.trim();
+      if (!cmd.toLowerCase().startsWith(":pc")) {
+        document.getElementById("status").innerHTML = "❌ Must start with :pc";
+        return;
+      }
+
+      const currency = document.getElementById("currency").value;
+      document.getElementById("status").innerHTML = "Fetching card...";
+
+      const parts = cmd.toLowerCase().replace(":pc", "").trim().split(/\s+/);
+      let cardNum = null;
+      let hint = null;
+      for (let p of parts) {
+        if (/^[a-z0-9]+-\d+$/.test(p)) cardNum = p.toUpperCase();
+        if (['aa','alt','parallel','sp','manga'].includes(p)) hint = p;
+      }
+
+      if (!cardNum) {
+        document.getElementById("status").innerHTML = "❌ No card number found";
+        return;
+      }
+
+      try {
+        // Get card info + image
+        const res = await fetch(`https://www.optcgapi.com/api/sets/card/${cardNum}`);
+        const data = await res.json();
+        const card = Array.isArray(data) ? data[0] : data;
+
+        if (!card) throw new Error("Card not found");
+
+        const nameLower = (card.card_name || "").toLowerCase();
+        let cardTypeKey = "default";
+        if (card.rarity === "L" || nameLower.includes("leader")) cardTypeKey = "leader";
+        else if (nameLower.includes("don") || nameLower.includes("dawn")) cardTypeKey = "don";
+
+        const revealData = {
+          timestamp: Date.now(),
+          name: card.card_name || "Unknown Card",
+          number: cardNum,
+          printing: hint ? "Alternate Art" : "Regular",
+          engPrice: "45.00",     // Placeholder - we can improve later
+          jpPrice: "22.00",
+          image: card.card_image || "",
+          cardTypeKey: cardTypeKey
+        };
+
+        // Send to JSONBin
+        await fetch(`https://api.jsonbin.io/v3/b/${JSON_BIN_ID}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Master-Key': JSON_BIN_MASTER_KEY
+          },
+          body: JSON.stringify(revealData)
+        });
+
+        document.getElementById("status").innerHTML = `✅ Sent: ${card.card_name}`;
+        document.getElementById("command").value = "";
+
+      } catch (err) {
+        document.getElementById("status").innerHTML = `❌ Error: ${err.message}`;
+        console.error(err);
+      }
+    }
+
+    document.getElementById("command").addEventListener("keypress", e => {
+      if (e.key === "Enter") processCommand();
+    });
+  </script>
+</body>
+</html>

@@ -5,8 +5,6 @@
   <title>Price Check Control</title>
   <style>
     body { font-family: Arial, sans-serif; background: #0f0f19; color: #fff; padding: 30px; text-align: center; }
-    .container { max-width: 620px; margin: 0 auto; }
-    h2 { color: #00ff9d; }
     input, button { padding: 14px; font-size: 18px; margin: 10px; border-radius: 8px; }
     input { width: 520px; background: #1f1f2e; color: #fff; border: 2px solid #00ff9d; }
     button { background: #00ff9d; color: #000; border: none; font-weight: bold; cursor: pointer; }
@@ -14,7 +12,7 @@
   </style>
 </head>
 <body>
-  <div class="container">
+  <div>
     <h2>One Piece Price Check Control</h2>
     <p>Paste command from chat:</p>
     <input type="text" id="command" placeholder=":pc OP05-123 AA" autofocus>
@@ -25,8 +23,6 @@
   </div>
 
   <script>
-    const channel = new BroadcastChannel('card_reveal_channel');
-
     async function processCommand() {
       const cmd = document.getElementById("command").value.trim();
       if (!cmd.toLowerCase().startsWith(":pc")) {
@@ -34,7 +30,7 @@
         return;
       }
 
-      document.getElementById("status").innerHTML = "Fetching card data...";
+      document.getElementById("status").innerHTML = "Fetching...";
 
       const parts = cmd.toLowerCase().replace(":pc", "").trim().split(/\s+/);
       let cardNum = null;
@@ -50,51 +46,32 @@
       }
 
       try {
-        // 1. Get card art + metadata from OPTCG API
-        const artRes = await fetch(`https://www.optcgapi.com/api/sets/card/${cardNum}`);
-        const artData = await artRes.json();
-        const cardInfo = Array.isArray(artData) ? artData[0] : artData;
+        // Get card art + info
+        const res = await fetch(`https://www.optcgapi.com/api/sets/card/${cardNum}`);
+        const data = await res.json();
+        const card = Array.isArray(data) ? data[0] : data;
 
-        if (!cardInfo) throw new Error("Card not found");
+        if (!card) throw new Error("Card not found");
 
-        // 2. Get accurate price from TCG Price Lookup (or fallback)
-        let engPrice = "N/A";
-        let jpPrice = "N/A";
-
-        try {
-          const priceRes = await fetch(`https://api.tcgpricelookup.com/v1/cards?game=one-piece&number=${cardNum}`);
-          const priceJson = await priceRes.json();
-          const priceInfo = priceJson.data?.[0] || {};
-          engPrice = priceInfo.nm_price || priceInfo.market_price || "N/A";
-          jpPrice = priceInfo.jp_nm_price || "N/A";
-        } catch (e) {
-          console.warn("Price lookup failed, using placeholder");
-        }
-
-        // Detect card type for back
-        const nameLower = (cardInfo.card_name || "").toLowerCase();
+        const nameLower = (card.card_name || "").toLowerCase();
         let cardTypeKey = "default";
-        if (cardInfo.rarity === "L" || nameLower.includes("leader")) cardTypeKey = "leader";
+        if (card.rarity === "L" || nameLower.includes("leader")) cardTypeKey = "leader";
         else if (nameLower.includes("don") || nameLower.includes("dawn")) cardTypeKey = "don";
 
-        const revealData = {
-          name: cardInfo.card_name || "Unknown Card",
-          number: cardNum,
-          printing: hint ? "Alternate Art" : "Regular",
-          engPrice: engPrice,
-          jpPrice: jpPrice,
-          image: cardInfo.card_image || "https://picsum.photos/id/237/380/530",
-          cardTypeKey: cardTypeKey
-        };
+        const revealUrl = `http://127.0.0.1:5500/display.html?name=${encodeURIComponent(card.card_name)}` +
+          `&number=${encodeURIComponent(cardNum)}` +
+          `&printing=${encodeURIComponent(hint ? "Alternate Art" : "Regular")}` +
+          `&engPrice=48.50` +   // TODO: Replace with real price later
+          `&jpPrice=25.00` +
+          `&image=${encodeURIComponent(card.card_image || "")}` +
+          `&cardTypeKey=${cardTypeKey}`;
 
-        // Send to display
-        channel.postMessage({ type: 'reveal', data: revealData });
+        window.open(revealUrl, '_blank');
 
-        document.getElementById("status").innerHTML = `✅ Revealed: ${revealData.name}`;
+        document.getElementById("status").innerHTML = `✅ Opened reveal for ${card.card_name}`;
         document.getElementById("command").value = "";
 
       } catch (err) {
-        console.error(err);
         document.getElementById("status").innerHTML = `❌ Error: ${err.message}`;
       }
     }
@@ -102,8 +79,6 @@
     document.getElementById("command").addEventListener("keypress", e => {
       if (e.key === "Enter") processCommand();
     });
-
-    console.log("Control panel ready - uses OPTCG for art + TCG Price Lookup for prices");
   </script>
 </body>
 </html>

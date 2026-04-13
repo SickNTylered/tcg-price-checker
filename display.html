@@ -47,22 +47,17 @@
       box-shadow: 0 30px 60px rgba(0,0,0,0.85);
     }
 
-    /* ==================== CARD BACKS - INSERT YOUR LINKS HERE ==================== */
+    /* ==================== CARD BACKS - USE RAW GITHUB LINKS ==================== */
     .back {
-      background: linear-gradient(135deg, #1a1a2e, #0f1629); /* Fallback */
-      background-image: url('https://github.com/SickNTylered/tcg-price-checker/blob/main/Back.png?raw=true'); /* ← INSERT STANDARD BACK LINK HERE */
       background-size: cover;
       background-position: center;
+      background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Back.png'); 
     }
     .back.leader {
-      background-image: url('https://github.com/SickNTylered/tcg-price-checker/blob/main/Leader.png?raw=true'); /* ← INSERT LEADER BACK LINK HERE */
-      background-size: cover;
-      background-position: center;
+      background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Leader.png'); 
     }
     .back.don {
-      background-image: url('https://github.com/SickNTylered/tcg-price-checker/blob/main/Don.png?raw=true'); /* ← INSERT DON BACK LINK HERE */
-      background-size: cover;
-      background-position: center;
+      background-image: url('https://raw.githubusercontent.com/SickNTylered/tcg-price-checker/main/Don.png'); 
     }
     /* ========================================================================= */
 
@@ -142,7 +137,7 @@
     function showCardReveal(data = {}) {
       console.log("🎴 Reveal triggered:", data);
 
-      // Dynamic back based on card type
+      // Dynamic back
       let backClass = "default";
       const nameLower = (data.name || "").toLowerCase();
       if (data.cardTypeKey === "leader" || nameLower.includes("leader")) backClass = "leader";
@@ -153,14 +148,14 @@
       // Set card art
       const img = document.getElementById('cardImage');
       img.src = data.image || "https://picsum.photos/id/237/380/390";
-      img.onerror = () => { img.src = "https://picsum.photos/id/237/380/390"; };
+      img.onerror = () => img.src = "https://picsum.photos/id/237/380/390";
 
-      // Text details
+      // Text
       document.getElementById('name').textContent = `${data.name || "Unknown Card"} (${data.number || "OPXX-XXX"})`;
       document.getElementById('details').textContent = `${data.printing || "Regular"} • ${data.lang || "ENG"}`;
       document.getElementById('price').textContent = `ENG: $${data.engPrice || "N/A"} • JP: $${data.jpPrice || "N/A"}`;
 
-      // Animation: Rise from bottom → Flip → Sparkles → Fall back down
+      // Animation
       scene.classList.add('show');
       card.classList.remove('show-front');
 
@@ -181,7 +176,7 @@
 
     window.showCardReveal = showCardReveal;
 
-    console.log("✅ Display ready! Replace the 3 back URLs in the CSS section with your GitHub raw links.");
+    console.log("✅ Display ready! Backs should now load from your GitHub repo.");
   </script>
 </body>
 </html>
